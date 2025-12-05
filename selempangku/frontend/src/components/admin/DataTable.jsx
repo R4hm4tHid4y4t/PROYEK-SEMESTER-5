@@ -1,13 +1,11 @@
 import React from 'react';
-import { FiChevronLeft, FiChevronRight } from 'react-icons/fi';
 
 const DataTable = ({ 
   columns, 
   data, 
   loading = false,
   emptyMessage = 'Tidak ada data',
-  pagination = null,
-  onPageChange = null
+  // Props pagination dihapus karena tidak lagi digunakan
 }) => {
   if (loading) {
     return (
@@ -23,33 +21,40 @@ const DataTable = ({
   }
 
   return (
-    <div className="bg-white rounded-xl shadow-sm overflow-hidden">
-      <div className="overflow-x-auto">
+    <div className="bg-white rounded-xl shadow-sm overflow-hidden border border-gray-100">
+      {/* Container untuk scroll horizontal pada layar kecil jika diperlukan */}
+      <div className="overflow-x-auto scrollbar-thin scrollbar-thumb-gray-300 scrollbar-track-gray-100">
         <table className="min-w-full divide-y divide-gray-200">
           <thead className="bg-gray-50">
             <tr>
               {columns.map((column, index) => (
                 <th
                   key={index}
-                  className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider"
+                  className={`px-6 py-4 text-left text-xs font-semibold text-gray-600 uppercase tracking-wider ${column.className || ''}`}
+                  style={column.style}
                 >
                   {column.header}
                 </th>
               ))}
             </tr>
           </thead>
-          <tbody className="bg-white divide-y divide-gray-200">
+          <tbody className="bg-white divide-y divide-gray-100">
             {data.length === 0 ? (
               <tr>
                 <td colSpan={columns.length} className="px-6 py-12 text-center text-gray-500">
-                  {emptyMessage}
+                  <div className="flex flex-col items-center justify-center">
+                    <svg className="w-12 h-12 text-gray-300 mb-3" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M20 13V6a2 2 0 00-2-2H6a2 2 0 00-2 2v7m16 0v5a2 2 0 01-2 2H6a2 2 0 01-2-2v-5m16 0h-2.586a1 1 0 00-.707.293l-2.414 2.414a1 1 0 01-.707.293h-3.172a1 1 0 01-.707-.293l-2.414-2.414A1 1 0 006.586 13H4" />
+                    </svg>
+                    <p className="text-sm font-medium">{emptyMessage}</p>
+                  </div>
                 </td>
               </tr>
             ) : (
               data.map((row, rowIndex) => (
-                <tr key={rowIndex} className="hover:bg-gray-50 transition-colors">
+                <tr key={row.id || rowIndex} className="hover:bg-gray-50 transition-colors">
                   {columns.map((column, colIndex) => (
-                    <td key={colIndex} className="px-6 py-4 whitespace-nowrap">
+                    <td key={colIndex} className={`px-6 py-4 whitespace-nowrap text-sm text-gray-900 ${column.className || ''}`}>
                       {column.render ? column.render(row) : row[column.accessor]}
                     </td>
                   ))}
@@ -59,43 +64,7 @@ const DataTable = ({
           </tbody>
         </table>
       </div>
-
-      {pagination && (
-        <div className="px-6 py-4 border-t flex items-center justify-between">
-          <p className="text-sm text-gray-500">
-            Menampilkan {pagination.from} - {pagination.to} dari {pagination.total} data
-          </p>
-          <div className="flex gap-2">
-            <button
-              onClick={() => onPageChange && onPageChange(pagination.currentPage - 1)}
-              disabled={pagination.currentPage === 1}
-              className="p-2 rounded-lg border hover:bg-gray-50 disabled:opacity-50 disabled:cursor-not-allowed"
-            >
-              <FiChevronLeft />
-            </button>
-            {[...Array(pagination.totalPages)].map((_, i) => (
-              <button
-                key={i}
-                onClick={() => onPageChange && onPageChange(i + 1)}
-                className={`px-4 py-2 rounded-lg ${
-                  pagination.currentPage === i + 1
-                    ? 'bg-primary-600 text-white'
-                    : 'border hover:bg-gray-50'
-                }`}
-              >
-                {i + 1}
-              </button>
-            ))}
-            <button
-              onClick={() => onPageChange && onPageChange(pagination.currentPage + 1)}
-              disabled={pagination.currentPage === pagination.totalPages}
-              className="p-2 rounded-lg border hover:bg-gray-50 disabled:opacity-50 disabled:cursor-not-allowed"
-            >
-              <FiChevronRight />
-            </button>
-          </div>
-        </div>
-      )}
+      {/* Bagian Pagination Footer telah dihapus di sini */}
     </div>
   );
 };

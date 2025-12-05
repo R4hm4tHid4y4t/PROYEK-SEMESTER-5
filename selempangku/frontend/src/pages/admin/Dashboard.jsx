@@ -14,8 +14,6 @@ import { formatCurrency, formatDateTime, getStatusColor } from '../../utils/help
 import Loader from '../../components/common/Loader';
 import {
   ResponsiveGrid,
-  ResponsiveTypography,
-  ResponsiveTableWrapper,
 } from '../../components/common/ResponsiveLayout';
 
 const Dashboard = () => {
@@ -27,7 +25,6 @@ const Dashboard = () => {
   const [activeChartTab, setActiveChartTab] = useState(0);
   const [refreshing, setRefreshing] = useState(false);
   const [sidebarOpen, setSidebarOpen] = useState(false);
-  const chartScrollRef = useRef(null);
   const location = useLocation();
 
   // Admin sidebar navigation items
@@ -40,12 +37,10 @@ const Dashboard = () => {
     { label: 'Pengaturan', href: '/admin/settings', icon: FiSettings },
   ];
 
-  // Close sidebar on route change
   useEffect(() => {
     setSidebarOpen(false);
   }, [location.pathname]);
 
-  // Lock body scroll when sidebar is open on mobile
   useEffect(() => {
     if (sidebarOpen) {
       document.body.style.overflow = 'hidden';
@@ -185,17 +180,17 @@ const Dashboard = () => {
     { name: 'Custom', value: 25, color: '#F59E0B' }
   ];
 
-  const StatCard = ({ card, index }) => {
+  const StatCard = ({ card }) => {
     const Icon = card.icon;
     return (
       <Link
         to={card.link}
-        className="bg-white rounded-xl shadow-sm p-4 sm:p-5 lg:p-6 hover:shadow-md transition-all duration-200 group"
+        className="bg-white rounded-xl shadow-sm p-4 sm:p-5 hover:shadow-md transition-all duration-200 group border border-gray-100"
       >
         <div className="flex items-start justify-between">
           <div className="flex-1 min-w-0">
             <p className="text-xs sm:text-sm text-gray-500 truncate">{card.title}</p>
-            <p className="text-lg sm:text-xl lg:text-2xl font-bold mt-1 truncate">{card.value}</p>
+            <p className="text-lg sm:text-xl font-bold mt-1 truncate text-gray-900">{card.value}</p>
             <div className="flex items-center gap-1 mt-1 sm:mt-2">
               <span className={`text-xs font-medium ${
                 card.changeType === 'positive' ? 'text-green-600' : 'text-red-600'
@@ -205,8 +200,8 @@ const Dashboard = () => {
               <span className="text-xs text-gray-400">vs bulan lalu</span>
             </div>
           </div>
-          <div className={`${card.lightColor} ${card.textColor} p-2 sm:p-3 rounded-lg group-hover:scale-110 transition-transform`}>
-            <Icon className="w-5 h-5 sm:w-6 sm:h-6 lg:w-7 lg:h-7" />
+          <div className={`${card.lightColor} ${card.textColor} p-2.5 rounded-lg group-hover:scale-110 transition-transform`}>
+            <Icon className="w-5 h-5 sm:w-6 sm:h-6" />
           </div>
         </div>
       </Link>
@@ -214,25 +209,24 @@ const Dashboard = () => {
   };
 
   const ChartSection = () => (
-    <div className="bg-white rounded-xl shadow-sm overflow-hidden">
+    <div className="bg-white rounded-xl shadow-sm overflow-hidden border border-gray-100">
       {/* Chart Header */}
-      <div className="p-4 sm:p-5 lg:p-6 border-b">
+      <div className="p-4 border-b bg-white">
         <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3">
           <div className="flex items-center gap-2">
             <FiTrendingUp className="w-5 h-5 text-primary-600" />
-            <h2 className="text-base sm:text-lg font-semibold">Grafik Penjualan</h2>
+            <h2 className="text-base font-semibold text-gray-900">Analitik</h2>
           </div>
           
-          {/* Period Toggle */}
-          <div className="flex gap-1 sm:gap-2 bg-gray-100 p-1 rounded-lg self-start sm:self-auto">
+          <div className="flex gap-1 bg-gray-50 p-1 rounded-lg self-start sm:self-auto border border-gray-100">
             {['daily', 'weekly', 'monthly'].map((period) => (
               <button
                 key={period}
                 onClick={() => setChartPeriod(period)}
-                className={`min-h-[36px] px-3 sm:px-4 py-1.5 text-xs sm:text-sm font-medium rounded-md transition-colors ${
+                className={`px-3 py-1 text-xs font-medium rounded-md transition-all ${
                   chartPeriod === period
-                    ? 'bg-white text-primary-600 shadow-sm'
-                    : 'text-gray-600 hover:text-gray-900'
+                    ? 'bg-white text-primary-600 shadow-sm border border-gray-200'
+                    : 'text-gray-500 hover:text-gray-900'
                 }`}
               >
                 {period === 'daily' ? 'Harian' : period === 'weekly' ? 'Mingguan' : 'Bulanan'}
@@ -266,21 +260,21 @@ const Dashboard = () => {
       </div>
       
       {/* Chart Content */}
-      <div className="p-4 sm:p-5 lg:p-6">
+      <div className="p-4 lg:p-6">
         {chartData.length > 0 ? (
           <div>
             <ResponsiveContainer width="100%" height={300}>
               {activeChartTab === 0 ? (
                 <LineChart data={chartData} margin={{ top: 5, right: 5, left: -20, bottom: 5 }}>
-                  <CartesianGrid strokeDasharray="3 3" stroke="#E5E7EB" />
+                  <CartesianGrid strokeDasharray="3 3" stroke="#F3F4F6" />
                   <XAxis 
                     dataKey="date" 
-                    tick={{ fontSize: 11 }}
+                    tick={{ fontSize: 11, fill: '#6B7280' }}
                     tickLine={false}
                     axisLine={{ stroke: '#E5E7EB' }}
                   />
                   <YAxis 
-                    tick={{ fontSize: 11 }}
+                    tick={{ fontSize: 11, fill: '#6B7280' }}
                     tickLine={false}
                     axisLine={{ stroke: '#E5E7EB' }}
                     tickFormatter={(value) => `${(value / 1000)}k`}
@@ -290,7 +284,7 @@ const Dashboard = () => {
                     labelFormatter={(label) => `Tanggal: ${label}`}
                     contentStyle={{ 
                       borderRadius: '8px', 
-                      border: 'none', 
+                      border: '1px solid #E5E7EB', 
                       boxShadow: '0 4px 6px -1px rgba(0, 0, 0, 0.1)' 
                     }}
                   />
@@ -305,19 +299,19 @@ const Dashboard = () => {
                 </LineChart>
               ) : activeChartTab === 1 ? (
                 <BarChart data={chartData} margin={{ top: 5, right: 5, left: -20, bottom: 5 }}>
-                  <CartesianGrid strokeDasharray="3 3" stroke="#E5E7EB" />
+                  <CartesianGrid strokeDasharray="3 3" stroke="#F3F4F6" />
                   <XAxis 
                     dataKey="date" 
-                    tick={{ fontSize: 11 }}
+                    tick={{ fontSize: 11, fill: '#6B7280' }}
                     tickLine={false}
                   />
                   <YAxis 
-                    tick={{ fontSize: 11 }}
+                    tick={{ fontSize: 11, fill: '#6B7280' }}
                     tickLine={false}
                   />
                   <Tooltip 
                     formatter={(value) => [value, 'Pesanan']}
-                    contentStyle={{ borderRadius: '8px', border: 'none', boxShadow: '0 4px 6px -1px rgba(0, 0, 0, 0.1)' }}
+                    contentStyle={{ borderRadius: '8px', border: '1px solid #E5E7EB', boxShadow: '0 4px 6px -1px rgba(0, 0, 0, 0.1)' }}
                   />
                   <Bar dataKey="orders" fill="#10B981" radius={[4, 4, 0, 0]} />
                 </BarChart>
@@ -340,7 +334,7 @@ const Dashboard = () => {
                   <Legend 
                     verticalAlign="bottom" 
                     height={36}
-                    formatter={(value) => <span className="text-sm">{value}</span>}
+                    formatter={(value) => <span className="text-sm text-gray-600">{value}</span>}
                   />
                 </PieChart>
               )}
@@ -356,30 +350,30 @@ const Dashboard = () => {
         )}
       </div>
 
-      {/* Desktop: Multi-chart Grid - Stack on mobile, grid on desktop */}
-      <div className="hidden lg:grid lg:grid-cols-2 gap-6 p-6 pt-0 border-t">
-        <div className="bg-gray-50 rounded-lg p-4">
-          <h3 className="text-sm font-medium text-gray-700 mb-3">Pesanan per Periode</h3>
-          <ResponsiveContainer width="100%" height={200}>
+      {/* Desktop: Multi-chart Grid */}
+      <div className="hidden lg:grid lg:grid-cols-2 gap-6 p-6 pt-0 border-t border-gray-100 mt-2">
+        <div className="pt-4">
+          <h3 className="text-sm font-medium text-gray-900 mb-4">Pesanan per Periode</h3>
+          <ResponsiveContainer width="100%" height={180}>
             <BarChart data={chartData} margin={{ top: 5, right: 5, left: -20, bottom: 5 }}>
-              <CartesianGrid strokeDasharray="3 3" stroke="#E5E7EB" />
-              <XAxis dataKey="date" tick={{ fontSize: 10 }} tickLine={false} />
-              <YAxis tick={{ fontSize: 10 }} tickLine={false} />
-              <Tooltip contentStyle={{ borderRadius: '8px', border: 'none' }} />
-              <Bar dataKey="orders" fill="#10B981" radius={[4, 4, 0, 0]} />
+              <CartesianGrid strokeDasharray="3 3" stroke="#F3F4F6" />
+              <XAxis dataKey="date" tick={{ fontSize: 10, fill: '#9CA3AF' }} tickLine={false} axisLine={false} />
+              <YAxis tick={{ fontSize: 10, fill: '#9CA3AF' }} tickLine={false} axisLine={false} />
+              <Tooltip contentStyle={{ borderRadius: '8px', border: 'none', boxShadow: '0 2px 5px rgba(0,0,0,0.1)' }} cursor={{fill: '#F9FAFB'}} />
+              <Bar dataKey="orders" fill="#10B981" radius={[4, 4, 0, 0]} barSize={20} />
             </BarChart>
           </ResponsiveContainer>
         </div>
-        <div className="bg-gray-50 rounded-lg p-4">
-          <h3 className="text-sm font-medium text-gray-700 mb-3">Penjualan per Kategori</h3>
-          <ResponsiveContainer width="100%" height={200}>
+        <div className="pt-4">
+          <h3 className="text-sm font-medium text-gray-900 mb-4">Penjualan per Kategori</h3>
+          <ResponsiveContainer width="100%" height={180}>
             <PieChart>
               <Pie
                 data={pieData}
                 cx="50%"
                 cy="50%"
-                innerRadius={40}
-                outerRadius={60}
+                innerRadius={50}
+                outerRadius={70}
                 paddingAngle={5}
                 dataKey="value"
               >
@@ -387,8 +381,8 @@ const Dashboard = () => {
                   <Cell key={`cell-${index}`} fill={entry.color} />
                 ))}
               </Pie>
-              <Tooltip contentStyle={{ borderRadius: '8px', border: 'none' }} />
-              <Legend verticalAlign="bottom" height={36} formatter={(value) => <span className="text-xs">{value}</span>} />
+              <Tooltip contentStyle={{ borderRadius: '8px', border: 'none', boxShadow: '0 2px 5px rgba(0,0,0,0.1)' }} />
+              <Legend verticalAlign="middle" align="right" layout="vertical" iconSize={8} formatter={(value) => <span className="text-xs text-gray-500">{value}</span>} />
             </PieChart>
           </ResponsiveContainer>
         </div>
@@ -397,26 +391,28 @@ const Dashboard = () => {
   );
 
   const RecentOrdersSection = () => (
-    <div className="bg-white rounded-xl shadow-sm overflow-hidden">
-      <div className="p-4 sm:p-5 lg:p-6 border-b flex items-center justify-between">
-        <h2 className="text-base sm:text-lg font-semibold">Pesanan Terbaru</h2>
+    <div className="bg-white rounded-xl shadow-sm overflow-hidden border border-gray-100 h-full">
+      <div className="p-4 border-b border-gray-100 flex items-center justify-between bg-white">
+        <h2 className="text-base font-semibold text-gray-900">Pesanan Terbaru</h2>
         <Link 
           to="/admin/orders" 
-          className="min-h-[36px] px-3 py-1.5 text-sm text-primary-600 hover:bg-primary-50 rounded-lg transition-colors flex items-center gap-1"
+          className="text-xs font-medium text-primary-600 hover:text-primary-700 hover:bg-primary-50 px-2 py-1 rounded transition-colors flex items-center gap-1"
         >
-          Lihat Semua <FiArrowRight className="w-4 h-4" />
+          Lihat Semua <FiArrowRight className="w-3 h-3" />
         </Link>
       </div>
       
       {recentOrders.length === 0 ? (
-        <div className="p-8 text-center">
-          <FiShoppingCart className="w-12 h-12 mx-auto mb-3 text-gray-300" />
-          <p className="text-gray-500">Belum ada pesanan</p>
+        <div className="p-8 text-center flex flex-col items-center justify-center h-64">
+          <div className="w-16 h-16 bg-gray-50 rounded-full flex items-center justify-center mb-3">
+            <FiShoppingCart className="w-8 h-8 text-gray-300" />
+          </div>
+          <p className="text-gray-500 text-sm">Belum ada pesanan</p>
         </div>
       ) : (
         <>
           {/* Mobile: Card List */}
-          <div className="lg:hidden divide-y">
+          <div className="lg:hidden divide-y divide-gray-100">
             {recentOrders.slice(0, 5).map((order) => (
               <div key={order.id} className="p-4 hover:bg-gray-50 transition-colors">
                 <div className="flex items-start justify-between gap-3">
@@ -428,8 +424,8 @@ const Dashboard = () => {
                     <p className="text-xs text-gray-400 mt-1">{formatDateTime(order.created_at)}</p>
                   </div>
                   <div className="text-right flex-shrink-0">
-                    <p className="text-sm font-semibold">{formatCurrency(order.total_price)}</p>
-                    <span className={`inline-block mt-1 px-2 py-0.5 text-xs font-medium rounded-full ${getStatusColor(order.status)}`}>
+                    <p className="text-sm font-semibold text-gray-900">{formatCurrency(order.total_price)}</p>
+                    <span className={`inline-block mt-1 px-2 py-0.5 text-[10px] font-medium rounded-full ${getStatusColor(order.status)}`}>
                       {order.status}
                     </span>
                   </div>
@@ -443,32 +439,34 @@ const Dashboard = () => {
             <table className="w-full text-sm">
               <thead className="bg-gray-50">
                 <tr>
-                  <th className="text-left py-3 px-4 font-medium text-gray-600">Order ID</th>
-                  <th className="text-left py-3 px-4 font-medium text-gray-600">Produk</th>
-                  <th className="text-left py-3 px-4 font-medium text-gray-600">Customer</th>
-                  <th className="text-left py-3 px-4 font-medium text-gray-600">Total</th>
-                  <th className="text-left py-3 px-4 font-medium text-gray-600">Status</th>
-                  <th className="text-left py-3 px-4 font-medium text-gray-600">Tanggal</th>
-                  <th className="text-center py-3 px-4 font-medium text-gray-600">Aksi</th>
+                  <th className="text-left py-2.5 px-4 font-medium text-gray-500 text-xs uppercase tracking-wider">Order ID</th>
+                  <th className="text-left py-2.5 px-4 font-medium text-gray-500 text-xs uppercase tracking-wider">Customer</th>
+                  <th className="text-left py-2.5 px-4 font-medium text-gray-500 text-xs uppercase tracking-wider">Total</th>
+                  <th className="text-left py-2.5 px-4 font-medium text-gray-500 text-xs uppercase tracking-wider">Status</th>
+                  <th className="text-right py-2.5 px-4 font-medium text-gray-500 text-xs uppercase tracking-wider">Aksi</th>
                 </tr>
               </thead>
-              <tbody className="divide-y">
+              <tbody className="divide-y divide-gray-100">
                 {recentOrders.map((order) => (
                   <tr key={order.id} className="hover:bg-gray-50 transition-colors">
-                    <td className="py-3 px-4 font-medium">#{order.id}</td>
-                    <td className="py-3 px-4 text-gray-900 max-w-[200px] truncate">{order.product_name}</td>
-                    <td className="py-3 px-4 text-gray-600">{order.user_name}</td>
-                    <td className="py-3 px-4 font-medium">{formatCurrency(order.total_price)}</td>
+                    <td className="py-3 px-4 font-medium text-gray-900">
+                        #{order.id}
+                        <div className="text-xs text-gray-500 truncate max-w-[120px] font-normal">{order.product_name}</div>
+                    </td>
+                    <td className="py-3 px-4 text-gray-600">
+                        <div className="font-medium text-gray-900">{order.user_name}</div>
+                        <div className="text-xs text-gray-400">{formatDateTime(order.created_at)}</div>
+                    </td>
+                    <td className="py-3 px-4 font-medium text-gray-900">{formatCurrency(order.total_price)}</td>
                     <td className="py-3 px-4">
-                      <span className={`inline-block px-2 py-0.5 text-xs font-medium rounded-full ${getStatusColor(order.status)}`}>
+                      <span className={`inline-flex items-center px-2 py-0.5 text-xs font-medium rounded-full ${getStatusColor(order.status)}`}>
                         {order.status}
                       </span>
                     </td>
-                    <td className="py-3 px-4 text-gray-500 text-xs">{formatDateTime(order.created_at)}</td>
-                    <td className="py-3 px-4 text-center">
+                    <td className="py-3 px-4 text-right">
                       <Link 
                         to={`/admin/orders/${order.id}`}
-                        className="min-h-[32px] min-w-[32px] inline-flex items-center justify-center text-gray-400 hover:text-primary-600 hover:bg-primary-50 rounded-lg transition-colors"
+                        className="inline-flex p-1.5 text-gray-400 hover:text-primary-600 hover:bg-primary-50 rounded transition-colors"
                       >
                         <FiExternalLink className="w-4 h-4" />
                       </Link>
@@ -484,18 +482,22 @@ const Dashboard = () => {
   );
 
   const QuickStatsSection = () => (
-    <div className="grid grid-cols-1 sm:grid-cols-3 gap-3 sm:gap-4 lg:gap-6">
+    <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
       {quickStats.map((stat, index) => (
-        <div key={index} className={`${stat.bgColor} rounded-xl p-4 sm:p-5 lg:p-6`}>
-          <h3 className="text-sm font-medium text-gray-700">{stat.title}</h3>
-          <p className={`text-2xl sm:text-3xl font-bold ${stat.color} mt-1`}>{stat.value}</p>
-          <p className="text-xs sm:text-sm text-gray-500 mt-1">{stat.subtitle}</p>
+        <div key={index} className={`${stat.bgColor} rounded-xl p-4 border border-transparent`}>
+          <div className="flex items-start justify-between">
+            <div>
+               <h3 className="text-xs font-semibold text-gray-600 uppercase tracking-wide">{stat.title}</h3>
+               <p className={`text-2xl font-bold ${stat.color} mt-1`}>{stat.value}</p>
+               <p className="text-xs text-gray-500 mt-1 opacity-80">{stat.subtitle}</p>
+            </div>
+          </div>
         </div>
       ))}
     </div>
   );
 
-  // Quick Actions with touch-friendly 44px minimum buttons
+  // Quick Actions
   const QuickActionsSection = () => {
     const quickActions = [
       { label: 'Tambah Produk', href: '/admin/products/new', icon: FiBox, color: 'bg-primary-600 hover:bg-primary-700 text-white' },
@@ -505,18 +507,18 @@ const Dashboard = () => {
     ];
 
     return (
-      <div className="bg-white rounded-xl shadow-sm p-4 sm:p-5 lg:p-6">
-        <h2 className="text-base sm:text-lg font-semibold mb-4">Aksi Cepat</h2>
-        <div className="grid grid-cols-2 sm:grid-cols-4 gap-3 sm:gap-4">
+      <div className="bg-white rounded-xl shadow-sm p-4 border border-gray-100">
+        <h2 className="text-sm font-semibold text-gray-900 mb-3 uppercase tracking-wide">Aksi Cepat</h2>
+        <div className="grid grid-cols-2 sm:grid-cols-4 gap-3">
           {quickActions.map((action, index) => {
             const Icon = action.icon;
             return (
               <Link
                 key={index}
                 to={action.href}
-                className={`min-h-[44px] flex items-center justify-center gap-2 px-4 py-3 rounded-lg font-medium text-sm transition-colors ${action.color}`}
+                className={`min-h-[40px] flex items-center justify-center gap-2 px-4 py-2.5 rounded-lg font-medium text-sm transition-colors shadow-sm ${action.color}`}
               >
-                <Icon className="w-5 h-5 flex-shrink-0" />
+                <Icon className="w-4 h-4 flex-shrink-0" />
                 <span className="truncate">{action.label}</span>
               </Link>
             );
@@ -526,10 +528,9 @@ const Dashboard = () => {
     );
   };
 
-  // Admin Sidebar Component - Drawer on mobile, fixed on desktop
+  // Admin Sidebar Component
   const AdminSidebar = () => (
     <>
-      {/* Mobile overlay */}
       {sidebarOpen && (
         <div
           className="lg:hidden fixed inset-0 bg-black bg-opacity-50 z-40 transition-opacity"
@@ -537,27 +538,25 @@ const Dashboard = () => {
         />
       )}
       
-      {/* Sidebar */}
       <aside
-        className={`fixed top-0 left-0 h-full w-64 bg-white shadow-lg z-50 transform transition-transform duration-300 
+        className={`fixed top-0 left-0 h-full w-64 bg-white shadow-xl lg:shadow-none border-r border-gray-200 z-50 transform transition-transform duration-300 
           lg:translate-x-0 lg:z-30
           ${sidebarOpen ? 'translate-x-0' : '-translate-x-full lg:translate-x-0'}`}
       >
-        {/* Sidebar Header */}
-        <div className="flex items-center justify-between p-4 border-b">
-          <Link to="/admin" className="text-xl font-bold text-primary-600">
-            Admin Panel
+        <div className="flex items-center justify-between p-5 border-b border-gray-100">
+          <Link to="/admin" className="text-xl font-bold text-primary-600 flex items-center gap-2">
+            <FiPackage className="w-6 h-6" />
+            <span>Admin</span>
           </Link>
           <button
             onClick={() => setSidebarOpen(false)}
-            className="lg:hidden min-h-[44px] min-w-[44px] p-2 text-gray-500 hover:text-gray-700 hover:bg-gray-100 rounded-lg transition-colors flex items-center justify-center"
+            className="lg:hidden p-2 text-gray-500 hover:text-gray-700 hover:bg-gray-100 rounded-lg transition-colors"
           >
-            <FiX className="w-6 h-6" />
+            <FiX className="w-5 h-5" />
           </button>
         </div>
 
-        {/* Navigation Items */}
-        <nav className="p-4 space-y-1">
+        <nav className="p-4 space-y-1 overflow-y-auto max-h-[calc(100vh-80px)]">
           {sidebarItems.map((item) => {
             const Icon = item.icon;
             const isActive = location.pathname === item.href || 
@@ -566,98 +565,95 @@ const Dashboard = () => {
               <Link
                 key={item.href}
                 to={item.href}
-                className={`min-h-[44px] flex items-center gap-3 px-4 py-3 rounded-lg font-medium text-sm transition-colors ${
+                className={`flex items-center gap-3 px-4 py-3 rounded-lg font-medium text-sm transition-colors ${
                   isActive
                     ? 'bg-primary-50 text-primary-600'
-                    : 'text-gray-700 hover:bg-gray-100 hover:text-gray-900'
+                    : 'text-gray-600 hover:bg-gray-50 hover:text-gray-900'
                 }`}
               >
-                <Icon className="w-5 h-5 flex-shrink-0" />
+                <Icon className={`w-5 h-5 flex-shrink-0 ${isActive ? 'text-primary-600' : 'text-gray-400'}`} />
                 <span>{item.label}</span>
               </Link>
             );
           })}
         </nav>
+
+        <div className="absolute bottom-0 left-0 w-full p-4 border-t border-gray-100 bg-white">
+            <div className="flex items-center gap-3">
+                <div className="w-8 h-8 rounded-full bg-gray-100 flex items-center justify-center text-xs font-bold text-gray-600">AD</div>
+                <div>
+                    <p className="text-sm font-medium text-gray-900">Administrator</p>
+                    <p className="text-xs text-gray-500">admin@selempangku.com</p>
+                </div>
+            </div>
+        </div>
       </aside>
     </>
   );
 
   return (
-    <div className="min-h-screen bg-gray-50">
-      {/* Admin Sidebar - Drawer on mobile, fixed on desktop */}
+    <div className="min-h-screen bg-gray-50/50">
       <AdminSidebar />
 
-      {/* Main Content Area - offset for sidebar on desktop */}
+      {/* Main Content Area - Reduced padding to bring content closer to sidebar */}
       <div className="lg:ml-64 min-h-screen">
-        {/* Mobile Header with Menu Toggle */}
-        <div className="lg:hidden sticky top-0 bg-white border-b z-30 px-4 py-3">
+        {/* Mobile Header */}
+        <div className="lg:hidden sticky top-0 bg-white border-b border-gray-200 z-30 px-4 py-3 shadow-sm">
           <div className="flex items-center justify-between">
             <button
               onClick={() => setSidebarOpen(true)}
-              className="min-h-[44px] min-w-[44px] p-2 text-gray-700 hover:text-primary-600 hover:bg-gray-100 rounded-lg transition-colors flex items-center justify-center"
-              aria-label="Open menu"
+              className="p-2 -ml-2 text-gray-700 hover:bg-gray-100 rounded-lg"
             >
               <FiMenu className="w-6 h-6" />
             </button>
-            <span className="text-lg font-semibold text-gray-900">Dashboard</span>
-            <button
-              onClick={handleRefresh}
-              disabled={refreshing}
-              className="min-h-[44px] min-w-[44px] p-2 text-gray-700 hover:text-primary-600 hover:bg-gray-100 rounded-lg transition-colors flex items-center justify-center disabled:opacity-50"
-              aria-label="Refresh"
-            >
+            <span className="text-base font-bold text-gray-900">Dashboard</span>
+            <button onClick={handleRefresh} disabled={refreshing} className="p-2 -mr-2 text-gray-600 hover:bg-gray-100 rounded-lg">
               <FiRefreshCw className={`w-5 h-5 ${refreshing ? 'animate-spin' : ''}`} />
             </button>
           </div>
         </div>
 
-        {/* Dashboard Content */}
-        <div className="p-4 sm:p-6 lg:p-8 space-y-4 sm:space-y-6 pb-20 lg:pb-8">
+        {/* Content Wrapper with Reduced Horizontal Padding (px-5) */}
+        <div className="p-4 sm:p-5 lg:px-5 lg:py-6 space-y-5 pb-20">
+          
           {/* Desktop Header */}
-          <div className="hidden lg:flex lg:items-center lg:justify-between">
+          <div className="hidden lg:flex lg:items-center lg:justify-between mb-6">
             <div>
-              <h1 className="text-2xl font-bold text-gray-900">Dashboard</h1>
-              <p className="text-sm text-gray-500 mt-0.5">
-                Selamat datang di Admin Panel SelempangKu
-              </p>
+              <h1 className="text-2xl font-bold text-gray-900 tracking-tight">Dashboard Overview</h1>
+              <p className="text-sm text-gray-500 mt-1">Pantau performa toko Anda hari ini.</p>
             </div>
-            <div className="flex items-center gap-2">
+            <div className="flex items-center gap-3">
+              <div className="flex items-center gap-2 px-3 py-2 bg-white border border-gray-200 rounded-lg text-sm text-gray-600 shadow-sm">
+                <FiCalendar className="w-4 h-4 text-gray-400" />
+                <span>{new Date().toLocaleDateString('id-ID', { weekday: 'long', day: 'numeric', month: 'long', year: 'numeric' })}</span>
+              </div>
               <button
                 onClick={handleRefresh}
                 disabled={refreshing}
-                className="min-h-[44px] px-4 py-2 bg-white border border-gray-200 rounded-lg text-sm font-medium text-gray-700 hover:bg-gray-50 transition-colors flex items-center gap-2 disabled:opacity-50"
+                className="px-3 py-2 bg-white border border-gray-200 rounded-lg text-sm font-medium text-gray-700 hover:bg-gray-50 transition-colors flex items-center gap-2 shadow-sm disabled:opacity-70"
               >
                 <FiRefreshCw className={`w-4 h-4 ${refreshing ? 'animate-spin' : ''}`} />
-                <span>Refresh</span>
               </button>
-              <div className="flex items-center gap-2 px-3 py-2 bg-white border border-gray-200 rounded-lg text-sm text-gray-600">
-                <FiCalendar className="w-4 h-4" />
-                <span>{new Date().toLocaleDateString('id-ID', { day: 'numeric', month: 'short', year: 'numeric' })}</span>
-              </div>
             </div>
           </div>
 
-          {/* Stats Cards - 1 col mobile, 2 col tablet, 4 col desktop */}
-          <ResponsiveGrid cols={4} gap={6}>
+          <ResponsiveGrid cols={4} gap={5}>
             {statCards.map((card, index) => (
-              <StatCard key={index} card={card} index={index} />
+              <StatCard key={index} card={card} />
             ))}
           </ResponsiveGrid>
 
-          {/* Quick Actions - Touch-friendly 44px buttons */}
           <QuickActionsSection />
 
-          {/* Charts and Orders - Stack on mobile/tablet, side-by-side on desktop */}
-          <div className="grid grid-cols-1 xl:grid-cols-3 gap-4 sm:gap-6">
-            <div className="xl:col-span-2">
+          <div className="grid grid-cols-1 xl:grid-cols-3 gap-5">
+            <div className="xl:col-span-2 h-full">
               <ChartSection />
             </div>
-            <div className="xl:col-span-1">
+            <div className="xl:col-span-1 h-full">
               <RecentOrdersSection />
             </div>
           </div>
 
-          {/* Quick Stats */}
           <QuickStatsSection />
         </div>
       </div>
