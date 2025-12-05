@@ -107,12 +107,7 @@ const LoginAdmin = () => {
             </form>
 
             <div className="mt-6 text-center">
-              <Link 
-                to="/login" 
-                className="text-base text-gray-600 hover:text-primary-600 min-h-[44px] inline-flex items-center"
-              >
-                Login sebagai User
-              </Link>
+
             </div>
           </div>
         </div>

@@ -411,11 +411,11 @@ const Payment = () => {
                         Klik untuk upload atau drag & drop
                       </p>
                       <p className="text-xs sm:text-sm text-gray-400">
-                        JPG, PNG, PDF (Maks. 5MB)
+                        JPG, PNG (Maks. 5MB)
                       </p>
                       <input
                         type="file"
-                        accept="image/*,.pdf"
+                        accept="image/*"
                         onChange={handleFileChange}
                         className="hidden"
                       />

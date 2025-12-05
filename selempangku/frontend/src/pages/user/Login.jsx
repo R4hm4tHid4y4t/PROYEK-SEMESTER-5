@@ -128,22 +128,8 @@ const Login = () => {
             </form>
 
             <div className="mt-6">
-              <div className="relative">
-                <div className="absolute inset-0 flex items-center">
-                  <div className="w-full border-t border-gray-300" />
-                </div>
-                <div className="relative flex justify-center text-base">
-                  <span className="px-2 bg-white text-gray-500">atau</span>
-                </div>
-              </div>
 
               <div className="mt-6 text-center">
-                <Link
-                  to="/admin/login"
-                  className="text-base text-gray-600 hover:text-primary-600 min-h-[44px] inline-flex items-center"
-                >
-                  Login sebagai Admin
-                </Link>
               </div>
             </div>
           </div>

@@ -66,11 +66,15 @@ const UserLayout = () => {
 
 const AdminLayout = () => {
   return (
-    <div className="flex min-h-screen bg-gray-100">
+    <div className="min-h-screen bg-gray-100">
+      <div className="flex">
+        {/* spacer sidebar hanya di desktop */}
+        <div className="hidden lg:block w-64" />
+        <main className="flex-1 p-6">
+          <Outlet />
+        </main>
+      </div>
       <Sidebar />
-      <main className="flex-1 lg:ml-64 p-6">
-        <Outlet />
-      </main>
     </div>
   );
 };

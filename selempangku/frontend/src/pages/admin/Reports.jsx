@@ -31,10 +31,7 @@ const Reports = () => {
   const fetchReport = async () => {
     try {
       setLoading(true);
-      const params = {
-        period,
-        ...dateRange
-      };
+      const params = { period, ...dateRange };
       const response = await reportService.getSales(params);
       setSalesData(response.data.salesData);
       setSummary(response.data.summary);
@@ -75,10 +72,7 @@ const Reports = () => {
           <div className="w-12 h-1.5 bg-gray-300 rounded-full mx-auto mb-4" />
           <div className="flex items-center justify-between">
             <h3 className="font-semibold text-lg">Filter Tanggal</h3>
-            <button 
-              onClick={() => setShowDateSheet(false)}
-              className="min-w-[44px] min-h-[44px] p-2 hover:bg-gray-100 rounded-lg flex items-center justify-center"
-            >
+            <button onClick={() => setShowDateSheet(false)} className="p-2 hover:bg-gray-100 rounded-lg">
               <FiX className="w-5 h-5" />
             </button>
           </div>
@@ -86,23 +80,23 @@ const Reports = () => {
         
         <div className="p-4 space-y-4">
           <div>
-            <label className="block text-base font-medium text-gray-700 mb-2">Dari Tanggal</label>
+            <label className="block text-sm font-medium text-gray-700 mb-2">Dari Tanggal</label>
             <input
               type="date"
               name="startDate"
               value={dateRange.startDate}
               onChange={handleDateChange}
-              className="w-full min-h-[48px] px-4 py-3 text-base border border-gray-300 rounded-lg focus:ring-2 focus:ring-primary-500"
+              className="w-full px-4 py-3 border border-gray-300 rounded-lg"
             />
           </div>
           <div>
-            <label className="block text-base font-medium text-gray-700 mb-2">Sampai Tanggal</label>
+            <label className="block text-sm font-medium text-gray-700 mb-2">Sampai Tanggal</label>
             <input
               type="date"
               name="endDate"
               value={dateRange.endDate}
               onChange={handleDateChange}
-              className="w-full min-h-[48px] px-4 py-3 text-base border border-gray-300 rounded-lg focus:ring-2 focus:ring-primary-500"
+              className="w-full px-4 py-3 border border-gray-300 rounded-lg"
             />
           </div>
           <div className="flex gap-3 pt-2">
@@ -111,13 +105,13 @@ const Reports = () => {
                 clearDateRange();
                 setShowDateSheet(false);
               }}
-              className="flex-1 min-h-[48px] px-4 py-3 bg-gray-100 text-gray-700 font-medium rounded-xl"
+              className="flex-1 px-4 py-3 bg-gray-100 text-gray-700 font-medium rounded-xl"
             >
               Reset
             </button>
             <button
               onClick={() => setShowDateSheet(false)}
-              className="flex-1 min-h-[48px] px-4 py-3 bg-primary-600 text-white font-medium rounded-xl"
+              className="flex-1 px-4 py-3 bg-primary-600 text-white font-medium rounded-xl"
             >
               Terapkan
             </button>
@@ -135,17 +129,17 @@ const Reports = () => {
         <button
           onClick={() => setCurrentPage(p => Math.max(1, p - 1))}
           disabled={currentPage === 1}
-          className="min-w-[44px] min-h-[44px] p-2 rounded-lg bg-gray-100 disabled:opacity-50 flex items-center justify-center"
+          className="p-2 rounded-lg bg-gray-100 disabled:opacity-50"
         >
           <FiChevronLeft className="w-5 h-5" />
         </button>
-        <span className="text-base px-4">
+        <span className="px-4">
           {currentPage} / {totalPages}
         </span>
         <button
           onClick={() => setCurrentPage(p => Math.min(totalPages, p + 1))}
           disabled={currentPage === totalPages}
-          className="min-w-[44px] min-h-[44px] p-2 rounded-lg bg-gray-100 disabled:opacity-50 flex items-center justify-center"
+          className="p-2 rounded-lg bg-gray-100 disabled:opacity-50"
         >
           <FiChevronRight className="w-5 h-5" />
         </button>
@@ -158,7 +152,7 @@ const Reports = () => {
       <div className="flex items-start justify-between mb-2">
         <div>
           <p className="text-sm text-gray-500">Order #{tx.id}</p>
-          <p className="font-semibold text-base">{tx.product_name}</p>
+          <p className="font-semibold">{tx.product_name}</p>
         </div>
         <span className={`inline-flex items-center px-2 py-1 rounded-full text-xs font-medium ${getStatusColor(tx.status)}`}>
           {tx.status}
@@ -179,10 +173,10 @@ const Reports = () => {
   }
 
   return (
-    <div className="space-y-4 sm:space-y-6 pb-24 lg:pb-0">
+    <div className="space-y-4 md:space-y-6 pb-24 lg:pb-0">
       {/* Header */}
-      <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
-        <h1 className="text-xl sm:text-2xl font-bold text-gray-900">Laporan Penjualan</h1>
+      <div>
+        <h1 className="text-xl md:text-2xl font-bold text-gray-900">Laporan Penjualan</h1>
       </div>
 
       {/* Filters */}
@@ -191,20 +185,16 @@ const Reports = () => {
         <div className="flex gap-2">
           <button
             onClick={() => setPeriod('daily')}
-            className={`min-h-[44px] flex-1 sm:flex-none px-4 py-2 rounded-lg text-base font-medium transition-colors ${
-              period === 'daily'
-                ? 'bg-primary-600 text-white'
-                : 'bg-gray-100 text-gray-700 hover:bg-gray-200'
+            className={`flex-1 md:flex-none px-4 py-2 rounded-lg font-medium transition-colors ${
+              period === 'daily' ? 'bg-primary-600 text-white' : 'bg-gray-100 text-gray-700'
             }`}
           >
             Harian
           </button>
           <button
             onClick={() => setPeriod('monthly')}
-            className={`min-h-[44px] flex-1 sm:flex-none px-4 py-2 rounded-lg text-base font-medium transition-colors ${
-              period === 'monthly'
-                ? 'bg-primary-600 text-white'
-                : 'bg-gray-100 text-gray-700 hover:bg-gray-200'
+            className={`flex-1 md:flex-none px-4 py-2 rounded-lg font-medium transition-colors ${
+              period === 'monthly' ? 'bg-primary-600 text-white' : 'bg-gray-100 text-gray-700'
             }`}
           >
             Bulanan
@@ -214,7 +204,7 @@ const Reports = () => {
         {/* Mobile: Date Filter Button */}
         <button
           onClick={() => setShowDateSheet(true)}
-          className={`md:hidden w-full min-h-[48px] px-4 py-3 rounded-lg flex items-center justify-center gap-2 ${
+          className={`md:hidden w-full px-4 py-3 rounded-lg flex items-center justify-center gap-2 ${
             dateRange.startDate || dateRange.endDate
               ? 'bg-primary-50 border-2 border-primary-500 text-primary-700'
               : 'bg-gray-100 text-gray-700'
@@ -228,7 +218,7 @@ const Reports = () => {
           </span>
         </button>
         
-        {/* Desktop: Inline Date Picker */}
+        {/* Tablet/Desktop: Inline Date Picker */}
         <div className="hidden md:flex gap-2 items-center flex-wrap">
           <FiCalendar className="text-gray-400 w-5 h-5" />
           <input
@@ -236,7 +226,7 @@ const Reports = () => {
             name="startDate"
             value={dateRange.startDate}
             onChange={handleDateChange}
-            className="min-h-[44px] px-3 py-2 text-base border border-gray-300 rounded-lg focus:ring-2 focus:ring-primary-500"
+            className="px-3 py-2 border border-gray-300 rounded-lg"
           />
           <span className="text-gray-400">-</span>
           <input
@@ -244,12 +234,12 @@ const Reports = () => {
             name="endDate"
             value={dateRange.endDate}
             onChange={handleDateChange}
-            className="min-h-[44px] px-3 py-2 text-base border border-gray-300 rounded-lg focus:ring-2 focus:ring-primary-500"
+            className="px-3 py-2 border border-gray-300 rounded-lg"
           />
           {(dateRange.startDate || dateRange.endDate) && (
             <button
               onClick={clearDateRange}
-              className="min-h-[44px] px-3 py-2 text-red-600 hover:bg-red-50 rounded-lg flex items-center gap-1"
+              className="px-3 py-2 text-red-600 hover:bg-red-50 rounded-lg flex items-center gap-1"
             >
               <FiX className="w-4 h-4" /> Reset
             </button>
@@ -259,56 +249,56 @@ const Reports = () => {
 
       {/* Summary Cards */}
       <ResponsiveGrid cols={3} gap={4}>
-        <div className="bg-white rounded-xl shadow-sm p-4 sm:p-6">
+        <div className="bg-white rounded-xl shadow-sm p-4">
           <div className="flex items-center justify-between">
             <div>
-              <p className="text-sm text-gray-500">Total Revenue</p>
-              <p className="text-xl sm:text-2xl font-bold text-green-600">{formatCurrency(summary.totalRevenue)}</p>
+              <p className="text-xs md:text-sm text-gray-500">Total Revenue</p>
+              <p className="text-lg md:text-2xl font-bold text-green-600">{formatCurrency(summary.totalRevenue)}</p>
             </div>
-            <div className="w-10 h-10 sm:w-12 sm:h-12 bg-green-100 rounded-lg flex items-center justify-center">
-              <FiDollarSign className="w-5 h-5 sm:w-6 sm:h-6 text-green-600" />
+            <div className="w-10 h-10 bg-green-100 rounded-lg flex items-center justify-center">
+              <FiDollarSign className="w-5 h-5 text-green-600" />
             </div>
           </div>
         </div>
 
-        <div className="bg-white rounded-xl shadow-sm p-4 sm:p-6">
+        <div className="bg-white rounded-xl shadow-sm p-4">
           <div className="flex items-center justify-between">
             <div>
-              <p className="text-sm text-gray-500">Total Pesanan</p>
-              <p className="text-xl sm:text-2xl font-bold text-blue-600">{summary.totalOrders}</p>
+              <p className="text-xs md:text-sm text-gray-500">Total Pesanan</p>
+              <p className="text-lg md:text-2xl font-bold text-blue-600">{summary.totalOrders}</p>
             </div>
-            <div className="w-10 h-10 sm:w-12 sm:h-12 bg-blue-100 rounded-lg flex items-center justify-center">
-              <FiShoppingCart className="w-5 h-5 sm:w-6 sm:h-6 text-blue-600" />
+            <div className="w-10 h-10 bg-blue-100 rounded-lg flex items-center justify-center">
+              <FiShoppingCart className="w-5 h-5 text-blue-600" />
             </div>
           </div>
         </div>
 
-        <div className="bg-white rounded-xl shadow-sm p-4 sm:p-6">
+        <div className="bg-white rounded-xl shadow-sm p-4">
           <div className="flex items-center justify-between">
             <div>
-              <p className="text-sm text-gray-500">Rata-rata Order</p>
-              <p className="text-xl sm:text-2xl font-bold text-purple-600">{formatCurrency(summary.averageOrderValue)}</p>
+              <p className="text-xs md:text-sm text-gray-500">Rata-rata Order</p>
+              <p className="text-lg md:text-2xl font-bold text-purple-600">{formatCurrency(summary.averageOrderValue)}</p>
             </div>
-            <div className="w-10 h-10 sm:w-12 sm:h-12 bg-purple-100 rounded-lg flex items-center justify-center">
-              <FiTrendingUp className="w-5 h-5 sm:w-6 sm:h-6 text-purple-600" />
+            <div className="w-10 h-10 bg-purple-100 rounded-lg flex items-center justify-center">
+              <FiTrendingUp className="w-5 h-5 text-purple-600" />
             </div>
           </div>
         </div>
       </ResponsiveGrid>
 
-      {/* Charts */}
-      <div className="grid grid-cols-1 lg:grid-cols-2 gap-4 sm:gap-6">
-        <div className="bg-white rounded-xl shadow-sm p-4 sm:p-6">
-          <h2 className="text-base sm:text-lg font-semibold mb-4">Grafik Penjualan</h2>
+      {/* Charts - Stack on tablet */}
+      <div className="grid grid-cols-1 gap-4 md:gap-6">
+        <div className="bg-white rounded-xl shadow-sm p-4">
+          <h2 className="text-base md:text-lg font-semibold mb-4">Grafik Penjualan</h2>
           {salesData.length > 0 ? (
-            <div className="h-64 sm:h-80">
+            <div className="h-64 md:h-80">
               <ResponsiveContainer width="100%" height="100%">
                 <LineChart data={salesData}>
                   <CartesianGrid strokeDasharray="3 3" />
-                  <XAxis dataKey="date" tick={{ fontSize: 12 }} />
-                  <YAxis tick={{ fontSize: 12 }} />
+                  <XAxis dataKey="date" tick={{ fontSize: 11 }} />
+                  <YAxis tick={{ fontSize: 11 }} />
                   <Tooltip formatter={(value) => formatCurrency(value)} />
-                  <Legend />
+                  <Legend wrapperStyle={{ fontSize: '12px' }} />
                   <Line type="monotone" dataKey="total" name="Revenue" stroke="#4F46E5" strokeWidth={2} />
                 </LineChart>
               </ResponsiveContainer>
@@ -320,17 +310,17 @@ const Reports = () => {
           )}
         </div>
 
-        <div className="bg-white rounded-xl shadow-sm p-4 sm:p-6">
-          <h2 className="text-base sm:text-lg font-semibold mb-4">Jumlah Pesanan</h2>
+        <div className="bg-white rounded-xl shadow-sm p-4">
+          <h2 className="text-base md:text-lg font-semibold mb-4">Jumlah Pesanan</h2>
           {salesData.length > 0 ? (
-            <div className="h-64 sm:h-80">
+            <div className="h-64 md:h-80">
               <ResponsiveContainer width="100%" height="100%">
                 <BarChart data={salesData}>
                   <CartesianGrid strokeDasharray="3 3" />
-                  <XAxis dataKey="date" tick={{ fontSize: 12 }} />
-                  <YAxis tick={{ fontSize: 12 }} />
+                  <XAxis dataKey="date" tick={{ fontSize: 11 }} />
+                  <YAxis tick={{ fontSize: 11 }} />
                   <Tooltip />
-                  <Legend />
+                  <Legend wrapperStyle={{ fontSize: '12px' }} />
                   <Bar dataKey="count" name="Pesanan" fill="#10B981" />
                 </BarChart>
               </ResponsiveContainer>
@@ -345,8 +335,8 @@ const Reports = () => {
 
       {/* Transactions */}
       <div className="bg-white rounded-xl shadow-sm overflow-hidden">
-        <div className="p-4 sm:p-6 border-b">
-          <h2 className="text-base sm:text-lg font-semibold">Riwayat Transaksi</h2>
+        <div className="p-4 border-b">
+          <h2 className="text-base md:text-lg font-semibold">Riwayat Transaksi</h2>
         </div>
 
         {/* Mobile: Card List */}
@@ -354,25 +344,68 @@ const Reports = () => {
           {paginatedTransactions.length === 0 ? (
             <p className="text-center py-8 text-gray-500">Tidak ada transaksi</p>
           ) : (
-            paginatedTransactions.map((tx) => (
-              <TransactionCard key={tx.id} tx={tx} />
-            ))
+            paginatedTransactions.map((tx) => <TransactionCard key={tx.id} tx={tx} />)
           )}
           <Pagination />
         </div>
 
-        {/* Desktop: Table */}
-        <div className="hidden md:block">
+        {/* Tablet: Compact Table (768px - 1023px) */}
+        <div className="hidden md:block lg:hidden overflow-x-auto">
+          <table className="w-full text-sm">
+            <thead className="bg-gray-50">
+              <tr>
+                <th className="px-3 py-2 text-left text-xs font-medium text-gray-500 uppercase">Order</th>
+                <th className="px-3 py-2 text-left text-xs font-medium text-gray-500 uppercase">Detail</th>
+                <th className="px-3 py-2 text-left text-xs font-medium text-gray-500 uppercase">Total</th>
+                <th className="px-3 py-2 text-left text-xs font-medium text-gray-500 uppercase">Status</th>
+              </tr>
+            </thead>
+            <tbody className="divide-y divide-gray-200">
+              {paginatedTransactions.length === 0 ? (
+                <tr>
+                  <td colSpan={4} className="px-3 py-8 text-center text-gray-500">
+                    Tidak ada transaksi
+                  </td>
+                </tr>
+              ) : (
+                paginatedTransactions.map((tx) => (
+                  <tr key={tx.id} className="hover:bg-gray-50">
+                    <td className="px-3 py-3 font-medium">#{tx.id}</td>
+                    <td className="px-3 py-3">
+                      <p className="font-medium text-sm">{tx.product_name}</p>
+                      <p className="text-xs text-gray-500">{tx.user_name}</p>
+                      <p className="text-xs text-gray-400">{formatDateTime(tx.created_at)}</p>
+                    </td>
+                    <td className="px-3 py-3 font-semibold">{formatCurrency(tx.total_price)}</td>
+                    <td className="px-3 py-3">
+                      <span className={`inline-flex items-center px-2 py-1 rounded-full text-xs font-medium ${getStatusColor(tx.status)}`}>
+                        {tx.status}
+                      </span>
+                    </td>
+                  </tr>
+                ))
+              )}
+            </tbody>
+          </table>
+          {totalPages > 1 && (
+            <div className="p-4 border-t">
+              <Pagination />
+            </div>
+          )}
+        </div>
+
+        {/* Desktop: Full Table (1024px+) */}
+        <div className="hidden lg:block">
           <ResponsiveTableWrapper>
-            <table className="w-full text-base">
+            <table className="w-full">
               <thead className="bg-gray-50">
                 <tr>
-                  <th className="px-4 sm:px-6 py-3 text-left text-sm font-medium text-gray-500 uppercase">Order ID</th>
-                  <th className="px-4 sm:px-6 py-3 text-left text-sm font-medium text-gray-500 uppercase">Produk</th>
-                  <th className="px-4 sm:px-6 py-3 text-left text-sm font-medium text-gray-500 uppercase">Customer</th>
-                  <th className="px-4 sm:px-6 py-3 text-left text-sm font-medium text-gray-500 uppercase">Total</th>
-                  <th className="px-4 sm:px-6 py-3 text-left text-sm font-medium text-gray-500 uppercase">Status</th>
-                  <th className="px-4 sm:px-6 py-3 text-left text-sm font-medium text-gray-500 uppercase">Tanggal</th>
+                  <th className="px-6 py-3 text-left text-sm font-medium text-gray-500 uppercase">Order ID</th>
+                  <th className="px-6 py-3 text-left text-sm font-medium text-gray-500 uppercase">Produk</th>
+                  <th className="px-6 py-3 text-left text-sm font-medium text-gray-500 uppercase">Customer</th>
+                  <th className="px-6 py-3 text-left text-sm font-medium text-gray-500 uppercase">Total</th>
+                  <th className="px-6 py-3 text-left text-sm font-medium text-gray-500 uppercase">Status</th>
+                  <th className="px-6 py-3 text-left text-sm font-medium text-gray-500 uppercase">Tanggal</th>
                 </tr>
               </thead>
               <tbody className="divide-y divide-gray-200">
@@ -385,21 +418,21 @@ const Reports = () => {
                 ) : (
                   paginatedTransactions.map((tx) => (
                     <tr key={tx.id} className="hover:bg-gray-50">
-                      <td className="px-4 sm:px-6 py-4 font-medium">#{tx.id}</td>
-                      <td className="px-4 sm:px-6 py-4">{tx.product_name}</td>
-                      <td className="px-4 sm:px-6 py-4">
+                      <td className="px-6 py-4 font-medium">#{tx.id}</td>
+                      <td className="px-6 py-4">{tx.product_name}</td>
+                      <td className="px-6 py-4">
                         <div>
                           <p className="font-medium">{tx.user_name}</p>
                           <p className="text-sm text-gray-500">{tx.user_email}</p>
                         </div>
                       </td>
-                      <td className="px-4 sm:px-6 py-4 font-medium">{formatCurrency(tx.total_price)}</td>
-                      <td className="px-4 sm:px-6 py-4">
+                      <td className="px-6 py-4 font-medium">{formatCurrency(tx.total_price)}</td>
+                      <td className="px-6 py-4">
                         <span className={`inline-flex items-center px-2 py-1 rounded-full text-sm font-medium ${getStatusColor(tx.status)}`}>
                           {tx.status}
                         </span>
                       </td>
-                      <td className="px-4 sm:px-6 py-4 text-sm">{formatDateTime(tx.created_at)}</td>
+                      <td className="px-6 py-4 text-sm">{formatDateTime(tx.created_at)}</td>
                     </tr>
                   ))
                 )}
@@ -414,7 +447,6 @@ const Reports = () => {
         </div>
       </div>
 
-      {/* Mobile Date Sheet */}
       <DateSheet />
     </div>
   );

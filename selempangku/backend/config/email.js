@@ -71,7 +71,7 @@ const sendOrderConfirmationEmail = async (to, order, name) => {
       <p>Halo ${name},</p>
       <p>Pesanan Anda telah berhasil dibuat. Berikut detail pesanan:</p>
       <div style="background-color: #f3f4f6; padding: 20px; margin: 20px 0;">
-        <p><strong>No. Pesanan:</strong> #${order.id}</p>
+        <p><strong>No. Pesanan:</strong> ${order.id}</p>
         <p><strong>Produk:</strong> ${order.product_name}</p>
         <p><strong>Jumlah:</strong> ${order.quantity}</p>
         <p><strong>Total:</strong> Rp ${order.total_price.toLocaleString('id-ID')}</p>
