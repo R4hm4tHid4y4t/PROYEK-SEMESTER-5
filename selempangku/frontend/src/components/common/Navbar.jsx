@@ -1,7 +1,9 @@
 import React, { useState } from 'react';
 import { Link, useNavigate, useLocation } from 'react-router-dom';
-import { FiMenu, FiX, FiShoppingBag, FiUser, FiLogOut, FiHome, FiGrid, FiClock } from 'react-icons/fi';
+import { FiMenu, FiX, FiUser, FiLogOut, FiHome, FiGrid, FiClock } from 'react-icons/fi';
 import { useAuth } from '../../context/AuthContext';
+import logoApp from '../../assets/logo-app.png';
+
 
 const Navbar = () => {
   const [isOpen, setIsOpen] = useState(false);
@@ -9,12 +11,15 @@ const Navbar = () => {
   const navigate = useNavigate();
   const location = useLocation();
 
+
   const handleLogout = () => {
     logout();
     navigate('/');
   };
 
+
   const isActive = (path) => location.pathname === path;
+
 
   return (
     <nav className="bg-white shadow-md sticky top-0 z-50">
@@ -22,10 +27,15 @@ const Navbar = () => {
         <div className="flex justify-between h-16">
           <div className="flex items-center">
             <Link to="/" className="flex items-center space-x-2">
-              <FiShoppingBag className="h-8 w-8 text-primary-600" />
+              <img 
+                src={logoApp} 
+                alt="SelempangKu Logo" 
+                className="h-8 w-8 object-cover"
+              />
               <span className="font-bold text-xl text-gray-900">SelempangKu</span>
             </Link>
           </div>
+
 
           {/* Desktop Menu */}
           <div className="hidden md:flex items-center space-x-4">
@@ -45,6 +55,7 @@ const Navbar = () => {
             >
               <FiGrid className="inline-block mr-1" /> Katalog
             </Link>
+
 
             {isAuthenticated ? (
               <>
@@ -95,6 +106,7 @@ const Navbar = () => {
             )}
           </div>
 
+
           {/* Mobile menu button */}
           <div className="md:hidden flex items-center">
             <button
@@ -106,6 +118,7 @@ const Navbar = () => {
           </div>
         </div>
       </div>
+
 
       {/* Mobile Menu */}
       {isOpen && (
@@ -175,5 +188,6 @@ const Navbar = () => {
     </nav>
   );
 };
+
 
 export default Navbar;

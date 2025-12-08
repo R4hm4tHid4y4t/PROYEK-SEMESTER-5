@@ -1,6 +1,8 @@
 import React from 'react';
 import { Link } from 'react-router-dom';
-import { FiShoppingBag, FiMail, FiPhone, FiMapPin, FiInstagram, FiFacebook, FiTwitter } from 'react-icons/fi';
+import { FiMail, FiPhone, FiMapPin, FiInstagram, FiFacebook, FiTwitter } from 'react-icons/fi';
+import logoApp from '../../assets/logo-app.png';
+
 
 const Footer = () => {
   return (
@@ -10,7 +12,11 @@ const Footer = () => {
           {/* Brand */}
           <div className="col-span-1 md:col-span-2">
             <div className="flex items-center space-x-2 mb-4">
-              <FiShoppingBag className="h-8 w-8 text-primary-500" />
+              <img 
+                src={logoApp} 
+                alt="SelempangKu Logo" 
+                className="h-8 w-8 object-cover"
+              />
               <span className="font-bold text-xl text-white">SelempangKu</span>
             </div>
             <p className="text-sm mb-4">
@@ -29,6 +35,7 @@ const Footer = () => {
               </a>
             </div>
           </div>
+
 
           {/* Quick Links */}
           <div>
@@ -57,6 +64,7 @@ const Footer = () => {
             </ul>
           </div>
 
+
           {/* Contact */}
           <div>
             <h3 className="text-white font-semibold mb-4">Kontak</h3>
@@ -77,6 +85,7 @@ const Footer = () => {
           </div>
         </div>
 
+
         <div className="border-t border-gray-800 mt-8 pt-8 text-center text-sm">
           <p>&copy; {new Date().getFullYear()} SelempangKu. All rights reserved.</p>
         </div>
@@ -84,5 +93,6 @@ const Footer = () => {
     </footer>
   );
 };
+
 
 export default Footer;

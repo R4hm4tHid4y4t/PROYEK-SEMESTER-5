@@ -5,12 +5,15 @@ import {
   FiDollarSign, FiBarChart2, FiLogOut, FiMenu, FiX, FiShoppingCart
 } from 'react-icons/fi';
 import { useAuth } from '../../context/AuthContext';
+import logoApp from '../../assets/logo-app.png';
+
 
 const Sidebar = () => {
   const [isOpen, setIsOpen] = useState(false);
   const location = useLocation();
   const navigate = useNavigate();
   const { logout } = useAuth();
+
 
   const menuItems = [
     { path: '/admin/dashboard', icon: <FiHome />, label: 'Dashboard' },
@@ -22,12 +25,15 @@ const Sidebar = () => {
     { path: '/admin/reports', icon: <FiBarChart2 />, label: 'Laporan' },
   ];
 
+
   const handleLogout = () => {
     logout();
     navigate('/admin/login');
   };
 
+
   const isActive = (path) => location.pathname === path;
+
 
   return (
     <>
@@ -39,6 +45,7 @@ const Sidebar = () => {
         {isOpen ? <FiX className="w-6 h-6" /> : <FiMenu className="w-6 h-6" />}
       </button>
 
+
       {/* Overlay */}
       {isOpen && (
         <div
@@ -46,6 +53,7 @@ const Sidebar = () => {
           onClick={() => setIsOpen(false)}
         />
       )}
+
 
       {/* Sidebar */}
       <aside
@@ -57,13 +65,18 @@ const Sidebar = () => {
           {/* Logo */}
           <div className="p-6 border-b">
             <Link to="/admin/dashboard" className="flex items-center space-x-2">
-              <FiShoppingBag className="h-8 w-8 text-primary-600" />
+              <img 
+                src={logoApp} 
+                alt="SelempangKu Logo" 
+                className="h-8 w-8 object-cover"
+              />
               <div>
                 <span className="font-bold text-xl text-gray-900">SelempangKu</span>
                 <p className="text-xs text-gray-500">Admin Panel</p>
               </div>
             </Link>
           </div>
+
 
           {/* Menu */}
           <nav className="flex-1 p-4 overflow-y-auto">
@@ -87,6 +100,7 @@ const Sidebar = () => {
             </ul>
           </nav>
 
+
           {/* Logout */}
           <div className="p-4 border-t">
             <button
@@ -102,5 +116,6 @@ const Sidebar = () => {
     </>
   );
 };
+
 
 export default Sidebar;
