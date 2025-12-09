@@ -85,7 +85,11 @@ export const reportService = {
   getDashboard: () => api.get('/reports/dashboard'),
   getSales: (params) => api.get('/reports/sales', { params }),
   getTransactions: (params) => api.get('/reports/transactions', { params }),
-  getChart: (params) => api.get('/reports/chart', { params })
+  getChart: (params) => api.get('/reports/chart', { params }),
+  export: (params) => api.get('/reports/export', { 
+    params,
+    responseType: 'blob' 
+  })
 };
 
 export default api;

@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import { FiCalendar, FiTrendingUp, FiDollarSign, FiShoppingCart, FiX, FiChevronLeft, FiChevronRight } from 'react-icons/fi';
+import { FiCalendar, FiTrendingUp, FiDollarSign, FiShoppingCart, FiX, FiChevronLeft, FiChevronRight, FiDownload } from 'react-icons/fi';
 import { LineChart, Line, BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer, Legend } from 'recharts';
 import { reportService } from '../../services/api';
 import { formatCurrency, formatDateTime, getStatusColor } from '../../utils/helpers';
@@ -23,6 +23,16 @@ const Reports = () => {
   const [showDateSheet, setShowDateSheet] = useState(false);
   const [currentPage, setCurrentPage] = useState(1);
   const itemsPerPage = 10;
+
+  // State untuk Export
+  const [showExportModal, setShowExportModal] = useState(false);
+  const [exportConfig, setExportConfig] = useState({
+    format: 'excel',
+    period: 'monthly',
+    startDate: '',
+    endDate: ''
+  });
+  const [isExporting, setIsExporting] = useState(false);
 
   useEffect(() => {
     fetchReport();
@@ -51,11 +61,117 @@ const Reports = () => {
     setDateRange({ startDate: '', endDate: '' });
   };
 
+  // Logic Export
+  const handleExport = async () => {
+    try {
+      setIsExporting(true);
+      const response = await reportService.export(exportConfig);
+      
+      const url = window.URL.createObjectURL(new Blob([response.data]));
+      const link = document.createElement('a');
+      link.href = url;
+      
+      const ext = exportConfig.format === 'excel' ? 'xlsx' : 'pdf';
+      link.setAttribute('download', `Laporan_Penjualan_${exportConfig.period}.${ext}`);
+      
+      document.body.appendChild(link);
+      link.click();
+      
+      link.parentNode.removeChild(link);
+      window.URL.revokeObjectURL(url);
+      setShowExportModal(false);
+    } catch (error) {
+      console.error('Export error:', error);
+      alert('Gagal mengunduh laporan');
+    } finally {
+      setIsExporting(false);
+    }
+  };
+
   const totalPages = Math.ceil(transactions.length / itemsPerPage);
   const paginatedTransactions = transactions.slice(
     (currentPage - 1) * itemsPerPage,
     currentPage * itemsPerPage
   );
+
+  const ExportModal = () => {
+    if (!showExportModal) return null;
+
+    return (
+      <div className="fixed inset-0 bg-black/50 z-50 flex items-center justify-center p-4">
+        <div className="bg-white rounded-xl w-full max-w-md p-6">
+          <div className="flex justify-between items-center mb-4">
+            <h3 className="text-lg font-bold">Export Laporan</h3>
+            <button onClick={() => setShowExportModal(false)}><FiX className="w-6 h-6" /></button>
+          </div>
+
+          <div className="space-y-4">
+            <div>
+              <label className="block text-sm font-medium mb-2">Format File</label>
+              <div className="grid grid-cols-2 gap-3">
+                <button
+                  onClick={() => setExportConfig({ ...exportConfig, format: 'excel' })}
+                  className={`p-3 rounded-lg border text-center transition-colors ${exportConfig.format === 'excel' ? 'bg-green-50 border-green-500 text-green-700 font-medium' : 'border-gray-200 hover:bg-gray-50'}`}
+                >
+                  Excel (.xlsx)
+                </button>
+                <button
+                  onClick={() => setExportConfig({ ...exportConfig, format: 'pdf' })}
+                  className={`p-3 rounded-lg border text-center transition-colors ${exportConfig.format === 'pdf' ? 'bg-red-50 border-red-500 text-red-700 font-medium' : 'border-gray-200 hover:bg-gray-50'}`}
+                >
+                  PDF
+                </button>
+              </div>
+            </div>
+
+            <div>
+              <label className="block text-sm font-medium mb-2">Periode</label>
+              <select
+                value={exportConfig.period}
+                onChange={(e) => setExportConfig({ ...exportConfig, period: e.target.value })}
+                className="w-full p-2.5 border border-gray-300 rounded-lg outline-none focus:ring-2 focus:ring-primary-500"
+              >
+                <option value="daily">Harian (Hari Ini)</option>
+                <option value="monthly">Bulanan (Bulan Ini)</option>
+                <option value="custom">Custom Tanggal</option>
+              </select>
+            </div>
+
+            {exportConfig.period === 'custom' && (
+              <div className="grid grid-cols-2 gap-3">
+                <div>
+                  <label className="text-xs text-gray-500 mb-1 block">Dari</label>
+                  <input
+                    type="date"
+                    value={exportConfig.startDate}
+                    onChange={(e) => setExportConfig({ ...exportConfig, startDate: e.target.value })}
+                    className="w-full p-2 border border-gray-300 rounded-lg"
+                  />
+                </div>
+                <div>
+                  <label className="text-xs text-gray-500 mb-1 block">Sampai</label>
+                  <input
+                    type="date"
+                    value={exportConfig.endDate}
+                    onChange={(e) => setExportConfig({ ...exportConfig, endDate: e.target.value })}
+                    className="w-full p-2 border border-gray-300 rounded-lg"
+                  />
+                </div>
+              </div>
+            )}
+
+            <button
+              onClick={handleExport}
+              disabled={isExporting}
+              className="w-full bg-primary-600 text-white py-3 rounded-xl font-medium mt-4 hover:bg-primary-700 disabled:bg-gray-400 disabled:cursor-not-allowed transition-colors"
+            >
+              {isExporting ? 'Mengunduh...' : 'Download Laporan'}
+            </button>
+          </div>
+        </div>
+      </div>
+    );
+  };
 
   const DateSheet = () => (
     <>
@@ -174,14 +290,20 @@ const Reports = () => {
 
   return (
     <div className="space-y-4 md:space-y-6 pb-24 lg:pb-0">
-      {/* Header */}
-      <div>
+      {/* Header with Export Button */}
+      <div className="flex flex-col md:flex-row md:items-center justify-between gap-4">
         <h1 className="text-xl md:text-2xl font-bold text-gray-900">Laporan Penjualan</h1>
+        <button
+          onClick={() => setShowExportModal(true)}
+          className="flex items-center justify-center gap-2 bg-green-600 text-white px-4 py-2 rounded-lg hover:bg-green-700 transition-colors shadow-sm"
+        >
+          <FiDownload className="w-5 h-5" />
+          <span className="font-medium">Export Laporan</span>
+        </button>
       </div>
 
       {/* Filters */}
       <div className="bg-white rounded-xl shadow-sm p-4 space-y-4">
-        {/* Period Toggle */}
         <div className="flex gap-2">
           <button
             onClick={() => setPeriod('daily')}
@@ -201,7 +323,6 @@ const Reports = () => {
           </button>
         </div>
 
-        {/* Mobile: Date Filter Button */}
         <button
           onClick={() => setShowDateSheet(true)}
           className={`md:hidden w-full px-4 py-3 rounded-lg flex items-center justify-center gap-2 ${
@@ -218,7 +339,6 @@ const Reports = () => {
           </span>
         </button>
         
-        {/* Tablet/Desktop: Inline Date Picker */}
         <div className="hidden md:flex gap-2 items-center flex-wrap">
           <FiCalendar className="text-gray-400 w-5 h-5" />
           <input
@@ -286,7 +406,7 @@ const Reports = () => {
         </div>
       </ResponsiveGrid>
 
-      {/* Charts - Stack on tablet */}
+      {/* Charts */}
       <div className="grid grid-cols-1 gap-4 md:gap-6">
         <div className="bg-white rounded-xl shadow-sm p-4">
           <h2 className="text-base md:text-lg font-semibold mb-4">Grafik Penjualan</h2>
@@ -339,7 +459,6 @@ const Reports = () => {
           <h2 className="text-base md:text-lg font-semibold">Riwayat Transaksi</h2>
         </div>
 
-        {/* Mobile: Card List */}
         <div className="md:hidden p-4 space-y-3">
           {paginatedTransactions.length === 0 ? (
             <p className="text-center py-8 text-gray-500">Tidak ada transaksi</p>
@@ -349,7 +468,6 @@ const Reports = () => {
           <Pagination />
         </div>
 
-        {/* Tablet: Compact Table (768px - 1023px) */}
         <div className="hidden md:block lg:hidden overflow-x-auto">
           <table className="w-full text-sm">
             <thead className="bg-gray-50">
@@ -394,7 +512,6 @@ const Reports = () => {
           )}
         </div>
 
-        {/* Desktop: Full Table (1024px+) */}
         <div className="hidden lg:block">
           <ResponsiveTableWrapper>
             <table className="w-full">
@@ -448,6 +565,7 @@ const Reports = () => {
       </div>
 
       <DateSheet />
+      <ExportModal />
     </div>
   );
 };
