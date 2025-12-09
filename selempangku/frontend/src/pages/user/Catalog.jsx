@@ -11,6 +11,7 @@ import {
   ResponsiveImage,
 } from '../../components/common/ResponsiveLayout';
 
+
 const Catalog = () => {
   const [products, setProducts] = useState([]);
   const [categories, setCategories] = useState([]);
@@ -23,17 +24,12 @@ const Catalog = () => {
   const [sortBy, setSortBy] = useState('newest');
   const productsPerPage = 12;
 
-  const sortOptions = [
-    { value: 'newest', label: 'Terbaru' },
-    { value: 'price_low', label: 'Harga Terendah' },
-    { value: 'price_high', label: 'Harga Tertinggi' },
-    { value: 'name_asc', label: 'Nama A-Z' },
-  ];
 
   useEffect(() => {
     fetchCategories();
     fetchProducts();
   }, []);
+
 
   useEffect(() => {
     const debounce = setTimeout(() => {
@@ -43,6 +39,7 @@ const Catalog = () => {
     return () => clearTimeout(debounce);
   }, [search, selectedCategory]);
 
+
   const fetchCategories = async () => {
     try {
       const response = await productService.getCategories();
@@ -51,6 +48,7 @@ const Catalog = () => {
       console.error('Error fetching categories:', error);
     }
   };
+
 
   const fetchProducts = async () => {
     try {
@@ -68,11 +66,13 @@ const Catalog = () => {
     }
   };
 
+
   const clearFilters = () => {
     setSearch('');
     setSelectedCategory('');
     setSortBy('newest');
   };
+
 
   const sortProducts = (productsToSort) => {
     const sorted = [...productsToSort];
@@ -89,12 +89,14 @@ const Catalog = () => {
     }
   };
 
+
   const sortedProducts = sortProducts(products);
   const totalPages = Math.ceil(sortedProducts.length / productsPerPage);
   const paginatedProducts = sortedProducts.slice(
     (currentPage - 1) * productsPerPage,
     currentPage * productsPerPage
   );
+
 
   const FilterContent = ({ onClose }) => (
     <div className="space-y-4 sm:space-y-6">
@@ -138,6 +140,7 @@ const Catalog = () => {
         </div>
       </div>
 
+
       {(search || selectedCategory) && (
         <button
           onClick={() => {
@@ -150,6 +153,7 @@ const Catalog = () => {
         </button>
       )}
 
+
       <button
         onClick={onClose}
         className="w-full min-h-[48px] py-3 px-4 bg-primary-600 text-white rounded-lg font-medium hover:bg-primary-700 transition-colors md:hidden text-base"
@@ -158,6 +162,7 @@ const Catalog = () => {
       </button>
     </div>
   );
+
 
   return (
     <div className="min-h-screen overflow-x-hidden bg-gray-50">
@@ -178,6 +183,7 @@ const Catalog = () => {
         </div>
       )}
 
+
       <ResponsiveContainer className="py-4 sm:py-6 md:py-8">
         {/* Header */}
         <div className="text-center mb-6 sm:mb-8">
@@ -189,10 +195,11 @@ const Catalog = () => {
           </ResponsiveTypography.Body>
         </div>
 
-        {/* Search Bar - Full width mobile, constrained desktop */}
+
+        {/* Search Bar - Full width, NO sort dropdown on desktop */}
         <div className="bg-white rounded-xl shadow-sm p-3 sm:p-4 mb-4 sm:mb-6 md:mb-8">
           <div className="flex flex-col gap-3 sm:gap-4">
-            {/* Search Input Row */}
+            {/* Search Input Row - Full width on all devices */}
             <div className="flex flex-col sm:flex-row gap-3 sm:gap-4">
               <div className="flex-1 relative">
                 <FiSearch className="absolute left-4 top-1/2 transform -translate-y-1/2 text-gray-400 w-5 h-5" />
@@ -203,23 +210,6 @@ const Catalog = () => {
                   placeholder="Cari selempang..."
                   className="w-full min-h-[48px] pl-12 pr-4 py-3 text-base border border-gray-300 rounded-lg focus:ring-2 focus:ring-primary-500 focus:border-primary-500 transition-colors"
                 />
-              </div>
-              
-              {/* Sort Dropdown - Touch-friendly (min 48px height) */}
-              <div className="relative hidden md:block">
-                <select
-                  value={sortBy}
-                  onChange={(e) => setSortBy(e.target.value)}
-                  className="min-h-[48px] min-w-[180px] pl-4 pr-10 py-3 text-base bg-white border border-gray-300 rounded-lg focus:ring-2 focus:ring-primary-500 focus:border-primary-500 appearance-none cursor-pointer transition-colors"
-                  aria-label="Sort products"
-                >
-                  {sortOptions.map(option => (
-                    <option key={option.value} value={option.value}>
-                      {option.label}
-                    </option>
-                  ))}
-                </select>
-                <FiChevronDown className="absolute right-4 top-1/2 transform -translate-y-1/2 text-gray-400 w-5 h-5 pointer-events-none" />
               </div>
             </div>
             
@@ -233,11 +223,10 @@ const Catalog = () => {
                   className="w-full min-h-[48px] pl-4 pr-10 py-3 text-base bg-gray-100 border-0 rounded-lg focus:ring-2 focus:ring-primary-500 appearance-none cursor-pointer transition-colors"
                   aria-label="Sort products"
                 >
-                  {sortOptions.map(option => (
-                    <option key={option.value} value={option.value}>
-                      {option.label}
-                    </option>
-                  ))}
+                  <option value="newest">Terbaru</option>
+                  <option value="price_low">Harga Terendah</option>
+                  <option value="price_high">Harga Tertinggi</option>
+                  <option value="name_asc">Nama A-Z</option>
                 </select>
                 <FiChevronDown className="absolute right-4 top-1/2 transform -translate-y-1/2 text-gray-400 w-5 h-5 pointer-events-none" />
               </div>
@@ -282,6 +271,7 @@ const Catalog = () => {
           </div>
         </div>
 
+
         {/* Main Content Layout */}
         <div className="flex flex-col md:flex-row gap-4 md:gap-6 lg:gap-8">
           {/* Desktop Sidebar Filters */}
@@ -291,6 +281,7 @@ const Catalog = () => {
               <FilterContent onClose={() => {}} />
             </div>
           </aside>
+
 
           {/* Products Section */}
           <main className="flex-1 min-w-0 overflow-x-hidden">
@@ -322,6 +313,7 @@ const Catalog = () => {
                 </button>
               </div>
             </div>
+
 
             {/* Products Grid/List */}
             {loading ? (
@@ -384,6 +376,7 @@ const Catalog = () => {
                           </ResponsiveTypography.Small>
                         </div>
 
+
                         <button className="mt-3 sm:mt-4 w-full min-h-[48px] py-3 px-4 bg-primary-600 text-white text-base font-medium rounded-lg hover:bg-primary-700 transition-colors md:hidden">
                           Lihat Detail
                         </button>
@@ -391,6 +384,7 @@ const Catalog = () => {
                     ))}
                   </ResponsiveGrid>
                 )}
+
 
                 {/* List View */}
                 {viewMode === 'list' && (
@@ -444,6 +438,7 @@ const Catalog = () => {
                   </div>
                 )}
 
+
                 {/* Responsive Pagination */}
                 {totalPages > 1 && (
                   <nav className="mt-6 sm:mt-8 flex flex-col sm:flex-row items-center justify-center gap-3 sm:gap-4" aria-label="Pagination">
@@ -469,6 +464,7 @@ const Catalog = () => {
                         Next <FiChevronRight />
                       </button>
                     </div>
+
 
                     {/* Tablet/Desktop: Full pagination */}
                     <div className="hidden sm:flex items-center gap-2">
@@ -527,5 +523,6 @@ const Catalog = () => {
     </div>
   );
 };
+
 
 export default Catalog;
