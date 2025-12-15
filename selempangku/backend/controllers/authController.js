@@ -15,7 +15,7 @@ exports.register = async (req, res) => {
       return res.status(400).json({ message: 'Email sudah terdaftar.' });
     }
 
-    const { id, otp } = await User.create({ name, email, password, phone, address });
+    const { otp } = await User.create({ name, email, password, phone, address });
     await sendOTPEmail(email, otp, name);
 
     res.status(201).json({
@@ -82,7 +82,7 @@ exports.login = async (req, res) => {
     }
 
     if (!user.is_verified) {
-      return res.status(403).json({ 
+      return res.status(403).json({
         message: 'Email belum diverifikasi. Silakan verifikasi email Anda.',
         needVerification: true,
         email: user.email

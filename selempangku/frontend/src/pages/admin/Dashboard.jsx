@@ -170,7 +170,7 @@ const Dashboard = () => {
           <div>
             <h2 className="text-base font-semibold text-gray-900">Pesanan Baru</h2>
             <p className="text-xs text-gray-500">
-              10 pesanan terbaru (semua status).
+              10 pesanan terakhir
             </p>
           </div>
           <Link
@@ -288,7 +288,7 @@ const Dashboard = () => {
           <div>
             <h2 className="text-base font-semibold text-gray-900">Konfirmasi Pembayaran</h2>
             <p className="text-xs text-gray-500">
-              10 pembayaran terakhir (ID Payment, Customer, Jumlah, Status).
+              10 pembayaran terakhir 
             </p>
           </div>
           <Link

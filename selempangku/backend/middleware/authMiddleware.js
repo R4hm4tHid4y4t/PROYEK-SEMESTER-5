@@ -21,6 +21,7 @@ const protect = async (req, res, next) => {
 
     req.user = user;
     next();
+    // eslint-disable-next-line no-unused-vars
   } catch (error) {
     return res.status(401).json({ message: 'Token tidak valid.' });
   }

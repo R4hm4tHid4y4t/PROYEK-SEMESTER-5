@@ -5,6 +5,7 @@ import { formatCurrency, formatDateTime, getStatusColor, getImageUrl } from '../
 import DataTable from '../../components/admin/DataTable';
 import { toast } from 'react-toastify';
 
+
 const Orders = () => {
   const [orders, setOrders] = useState([]);
   const [loading, setLoading] = useState(true);
@@ -17,9 +18,11 @@ const Orders = () => {
   const [dateTo, setDateTo] = useState('');
   const [showDatePicker, setShowDatePicker] = useState(false);
 
+
   useEffect(() => {
     fetchOrders();
   }, [filter]);
+
 
   const fetchOrders = async () => {
     try {
@@ -36,6 +39,7 @@ const Orders = () => {
     }
   };
 
+
   const handleStatusChange = async (orderId, newStatus) => {
     try {
       await orderService.updateStatus(orderId, newStatus);
@@ -49,15 +53,18 @@ const Orders = () => {
     }
   };
 
+
   const handleViewOrder = (order) => {
     setSelectedOrder(order);
     setShowDetailSheet(true);
   };
 
+
   const statusOptions = [
     'Menunggu Pembayaran', 'Menunggu Verifikasi', 'Proses Produksi',
     'Dalam Pengiriman', 'Selesai', 'Ditolak'
   ];
+
 
   const getStatusIcon = (status) => {
     switch (status) {
@@ -70,6 +77,7 @@ const Orders = () => {
       default: return <FiClock className="w-4 h-4" />;
     }
   };
+
 
   // --- FILTERING LOGIC ---
   const filteredOrders = orders.filter(order => {
@@ -98,10 +106,12 @@ const Orders = () => {
     return true;
   });
 
+
   const clearDateFilter = () => {
     setDateFrom('');
     setDateTo('');
   };
+
 
   // --- COLUMNS DEFINITION (SIMPLIFIED) ---
   const columns = [
@@ -144,6 +154,7 @@ const Orders = () => {
     }
   ];
 
+
   // --- MOBILE CARD ---
   const OrderCard = ({ order }) => (
     <div 
@@ -167,6 +178,7 @@ const Orders = () => {
     </div>
   );
 
+
   // --- DETAIL MODAL CONTENT ---
   const DetailContent = ({ order }) => {
     if (!order) return null;
@@ -186,6 +198,7 @@ const Orders = () => {
           </select>
         </div>
 
+
         {/* Product Info */}
         <div>
           <h4 className="text-sm font-medium text-gray-500 mb-3 uppercase tracking-wider">Produk</h4>
@@ -204,7 +217,8 @@ const Orders = () => {
           </div>
         </div>
 
-        {/* Customer Info */}
+
+        {/* Customer Info & Shipping Address */}
         <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
           <div>
             <h4 className="text-sm font-medium text-gray-500 mb-2 uppercase tracking-wider">Customer</h4>
@@ -222,6 +236,7 @@ const Orders = () => {
           </div>
         </div>
 
+
         {order.notes && (
           <div>
              <h4 className="text-sm font-medium text-gray-500 mb-2 uppercase tracking-wider">Catatan</h4>
@@ -231,12 +246,14 @@ const Orders = () => {
           </div>
         )}
 
+
         <div className="text-xs text-gray-400 text-center pt-4 border-t">
           Dibuat pada: {formatDateTime(order.created_at)}
         </div>
       </div>
     );
   };
+
 
   return (
     <div className="space-y-6">
@@ -246,6 +263,7 @@ const Orders = () => {
           <h1 className="text-2xl font-bold text-gray-900">Pesanan</h1>
           <p className="text-sm text-gray-500">{filteredOrders.length} total pesanan</p>
         </div>
+
 
         <div className="flex flex-col sm:flex-row gap-3">
             {/* Search */}
@@ -285,6 +303,7 @@ const Orders = () => {
         </div>
       </div>
 
+
       {/* Content */}
       <div className="bg-white rounded-xl shadow-sm border border-gray-100 overflow-hidden min-h-[400px]">
         {loading ? (
@@ -317,6 +336,7 @@ const Orders = () => {
         )}
       </div>
 
+
       {/* Mobile Date Picker Sheet */}
       {showDatePicker && (
         <div className="fixed inset-0 bg-black/50 z-50 flex items-end md:items-center md:justify-center p-4">
@@ -334,6 +354,7 @@ const Orders = () => {
            </div>
         </div>
       )}
+
 
       {/* Detail Modal/Sheet */}
       {(showDetailSheet && selectedOrder) && (
@@ -355,5 +376,6 @@ const Orders = () => {
     </div>
   );
 };
+
 
 export default Orders;

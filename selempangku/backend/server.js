@@ -36,7 +36,7 @@ app.get('/api/health', (req, res) => {
   res.json({ status: 'OK', message: 'SelempangKu API is running' });
 });
 
-app.use((err, req, res, next) => {
+app.use((err, req, res, _next) => {
   console.error(err.stack);
   
   if (err.name === 'MulterError') {
