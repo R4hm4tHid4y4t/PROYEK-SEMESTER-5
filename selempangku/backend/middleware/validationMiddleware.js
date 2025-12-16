@@ -12,7 +12,15 @@ const registerValidation = [
   body('name').trim().notEmpty().withMessage('Nama harus diisi'),
   body('email').isEmail().withMessage('Email tidak valid'),
   body('password').isLength({ min: 6 }).withMessage('Password minimal 6 karakter'),
-  body('phone').optional().isMobilePhone('id-ID').withMessage('Nomor telepon tidak valid'),
+  
+  // Validasi Telepon: Wajib diisi dan format valid
+  body('phone')
+    .notEmpty().withMessage('Nomor telepon harus diisi')
+    .isMobilePhone('id-ID').withMessage('Nomor telepon tidak valid'),
+  
+  // Validasi Alamat: Wajib diisi
+  body('address').trim().notEmpty().withMessage('Alamat harus diisi'),
+  
   handleValidationErrors
 ];
 

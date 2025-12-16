@@ -41,6 +41,7 @@ const Register = () => {
 
           <div className="bg-white rounded-xl shadow-sm p-4 sm:p-6 md:p-8">
             <form onSubmit={handleSubmit(onSubmit)} className="space-y-4 sm:space-y-5">
+              {/* Nama Lengkap */}
               <div>
                 <label className="block text-base font-medium text-gray-700 mb-1.5">Nama Lengkap</label>
                 <div className="relative">
@@ -55,6 +56,7 @@ const Register = () => {
                 </div>
               </div>
 
+              {/* Email */}
               <div>
                 <label className="block text-base font-medium text-gray-700 mb-1.5">Email</label>
                 <div className="relative">
@@ -69,6 +71,7 @@ const Register = () => {
                 </div>
               </div>
 
+              {/* Password */}
               <div>
                 <label className="block text-base font-medium text-gray-700 mb-1.5">Password</label>
                 <div className="relative">
@@ -93,6 +96,7 @@ const Register = () => {
                 {errors.password && <p className="text-red-500 text-sm mt-1">{errors.password.message}</p>}
               </div>
 
+              {/* Konfirmasi Password */}
               <div>
                 <label className="block text-base font-medium text-gray-700 mb-1.5">Konfirmasi Password</label>
                 <div className="relative">
@@ -110,30 +114,34 @@ const Register = () => {
                 {errors.confirmPassword && <p className="text-red-500 text-sm mt-1">{errors.confirmPassword.message}</p>}
               </div>
 
+              {/* No. Telepon - UPDATED */}
               <div>
                 <label className="block text-base font-medium text-gray-700 mb-1.5">No. Telepon</label>
                 <div className="relative">
                   <FiPhone className="absolute left-3 sm:left-4 top-1/2 transform -translate-y-1/2 text-gray-400 w-5 h-5" />
                   <input
                     type="tel"
-                    {...register('phone')}
+                    {...register('phone', { required: 'Nomor telepon harus diisi' })}
                     className="w-full min-h-[48px] pl-10 sm:pl-12 pr-4 py-3 text-base border border-gray-300 rounded-lg focus:ring-2 focus:ring-primary-500 focus:border-primary-500 transition-colors"
                     placeholder="Contoh: 08123456789"
                   />
                 </div>
+                {errors.phone && <p className="text-red-500 text-sm mt-1">{errors.phone.message}</p>}
               </div>
 
+              {/* Alamat - UPDATED */}
               <div>
                 <label className="block text-base font-medium text-gray-700 mb-1.5">Alamat</label>
                 <div className="relative">
                   <FiMapPin className="absolute left-3 sm:left-4 top-3 text-gray-400 w-5 h-5" />
                   <textarea
-                    {...register('address')}
+                    {...register('address', { required: 'Alamat harus diisi' })}
                     rows={3}
                     className="w-full min-h-[100px] pl-10 sm:pl-12 pr-4 py-3 text-base border border-gray-300 rounded-lg focus:ring-2 focus:ring-primary-500 focus:border-primary-500 transition-colors resize-none"
                     placeholder="Masukkan alamat lengkap"
                   />
                 </div>
+                {errors.address && <p className="text-red-500 text-sm mt-1">{errors.address.message}</p>}
               </div>
 
               <button
