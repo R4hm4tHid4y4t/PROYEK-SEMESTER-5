@@ -1,28 +1,23 @@
 import React, { useState } from 'react';
 import { Link } from 'react-router-dom';
+import { useForm } from 'react-hook-form';
 import { FiMail, FiArrowLeft, FiCheck } from 'react-icons/fi';
 import { useAuth } from '../../context/AuthContext';
 import { toast } from 'react-toastify';
 import { ResponsiveContainer, ResponsiveTypography } from '../../components/common/ResponsiveLayout';
 
 const ForgotPassword = () => {
-  const [email, setEmail] = useState('');
-  const [loading, setLoading] = useState(false);
+  const { register, handleSubmit, formState: { isSubmitting }, getValues } = useForm();
   const [sent, setSent] = useState(false);
   const { forgotPassword } = useAuth();
 
-  const handleSubmit = async (e) => {
-    e.preventDefault();
-    setLoading(true);
-    
+  const onSubmit = async (data) => {
     try {
-      await forgotPassword(email);
+      await forgotPassword(data.email);
       setSent(true);
       toast.success('Link reset password telah dikirim ke email Anda');
     } catch (error) {
       toast.error(error.response?.data?.message || 'Email tidak ditemukan');
-    } finally {
-      setLoading(false);
     }
   };
 
@@ -37,7 +32,7 @@ const ForgotPassword = () => {
               </div>
               <ResponsiveTypography.H2 className="text-gray-900 mb-2">Email Terkirim</ResponsiveTypography.H2>
               <ResponsiveTypography.Body className="text-gray-600 mb-6">
-                Kami telah mengirim link reset password ke <strong>{email}</strong>. 
+                Kami telah mengirim link reset password ke <strong>{getValues('email')}</strong>. 
                 Silakan cek inbox atau folder spam Anda.
               </ResponsiveTypography.Body>
               <Link 
@@ -65,16 +60,14 @@ const ForgotPassword = () => {
           </div>
 
           <div className="bg-white rounded-xl shadow-sm p-4 sm:p-6 md:p-8">
-            <form onSubmit={handleSubmit} className="space-y-5 sm:space-y-6">
+            <form onSubmit={handleSubmit(onSubmit)} className="space-y-5 sm:space-y-6">
               <div>
                 <label className="block text-base font-medium text-gray-700 mb-1.5">Email</label>
                 <div className="relative">
                   <FiMail className="absolute left-3 sm:left-4 top-1/2 transform -translate-y-1/2 text-gray-400 w-5 h-5" />
                   <input
                     type="email"
-                    required
-                    value={email}
-                    onChange={(e) => setEmail(e.target.value)}
+                    {...register('email', { required: 'Email harus diisi' })}
                     className="w-full min-h-[48px] pl-10 sm:pl-12 pr-4 py-3 text-base border border-gray-300 rounded-lg focus:ring-2 focus:ring-primary-500 focus:border-primary-500 transition-colors"
                     placeholder="Masukkan email Anda"
                   />
@@ -83,10 +76,10 @@ const ForgotPassword = () => {
 
               <button
                 type="submit"
-                disabled={loading}
+                disabled={isSubmitting}
                 className="w-full min-h-[48px] py-3 bg-primary-600 text-white text-base font-medium rounded-lg hover:bg-primary-700 transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
               >
-                {loading ? 'Mengirim...' : 'Kirim Link Reset'}
+                {isSubmitting ? 'Mengirim...' : 'Kirim Link Reset'}
               </button>
             </form>
 

@@ -1,23 +1,135 @@
 import React, { useState, useEffect } from 'react';
+import { useForm } from 'react-hook-form';
 import { FiPlus, FiEdit2, FiTrash2, FiToggleLeft, FiToggleRight, FiX, FiCreditCard, FiMoreVertical } from 'react-icons/fi';
 import { accountService } from '../../services/api';
 import DataTable from '../../components/admin/DataTable';
 import { toast } from 'react-toastify';
 import { ResponsiveGrid } from '../../components/common/ResponsiveLayout';
 
+const AccountModal = ({ editingAccount, onClose, onSuccess }) => {
+  const { register, handleSubmit, formState: { isSubmitting } } = useForm({
+    defaultValues: editingAccount ? {
+      bank_name: editingAccount.bank_name,
+      account_number: editingAccount.account_number,
+      account_holder: editingAccount.account_holder,
+      is_active: editingAccount.is_active
+    } : {
+      bank_name: '',
+      account_number: '',
+      account_holder: '',
+      is_active: true
+    }
+  });
+
+  const onSubmit = async (data) => {
+    try {
+      if (editingAccount) {
+        await accountService.update(editingAccount.id, data);
+        toast.success('Rekening berhasil diperbarui');
+      } else {
+        await accountService.create(data);
+        toast.success('Rekening berhasil ditambahkan');
+      }
+      onSuccess();
+    } catch (error) {
+      toast.error(error.response?.data?.message || 'Gagal menyimpan rekening');
+    }
+  };
+
+  return (
+    <div className="fixed inset-0 z-50">
+      <div className="hidden md:block absolute inset-0 bg-black/50 backdrop-blur-sm" onClick={onClose} />
+      
+      <div className="absolute inset-0 md:flex md:items-center md:justify-center md:p-4">
+        <div className="bg-white w-full h-full md:h-auto md:rounded-xl md:max-w-md overflow-hidden flex flex-col">
+          <div className="flex items-center justify-between p-4 border-b">
+            <div className="flex items-center gap-3">
+              <div className="w-10 h-10 bg-primary-100 rounded-full flex items-center justify-center">
+                <FiCreditCard className="w-5 h-5 text-primary-600" />
+              </div>
+              <h2 className="text-lg font-semibold">
+                {editingAccount ? 'Edit Rekening' : 'Tambah Rekening'}
+              </h2>
+            </div>
+            <button type="button" onClick={onClose} className="p-2 hover:bg-gray-100 rounded-lg">
+              <FiX className="w-5 h-5" />
+            </button>
+          </div>
+
+          <form onSubmit={handleSubmit(onSubmit)} className="flex-1 overflow-y-auto">
+            <div className="p-4 space-y-4">
+              <div>
+                <label className="block text-sm font-medium text-gray-700 mb-1.5">Nama Bank</label>
+                <input
+                  type="text"
+                  {...register('bank_name', { required: true })}
+                  className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-primary-500"
+                  placeholder="Contoh: BCA, Mandiri, BNI"
+                />
+              </div>
+
+              <div>
+                <label className="block text-sm font-medium text-gray-700 mb-1.5">Nomor Rekening</label>
+                <input
+                  type="text"
+                  {...register('account_number', { required: true })}
+                  className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-primary-500"
+                  placeholder="Contoh: 1234567890"
+                />
+              </div>
+
+              <div>
+                <label className="block text-sm font-medium text-gray-700 mb-1.5">Atas Nama</label>
+                <input
+                  type="text"
+                  {...register('account_holder', { required: true })}
+                  className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-primary-500"
+                  placeholder="Nama pemilik rekening"
+                />
+              </div>
+
+              <div className="flex items-center gap-3 p-3 bg-gray-50 rounded-lg">
+                <input
+                  type="checkbox"
+                  id="is_active"
+                  {...register('is_active')}
+                  className="w-5 h-5 text-primary-600 rounded"
+                />
+                <label htmlFor="is_active" className="font-medium text-gray-700">
+                  Rekening Aktif
+                </label>
+              </div>
+            </div>
+
+            <div className="p-4 border-t bg-gray-50 flex gap-3">
+              <button 
+                type="button" 
+                onClick={onClose} 
+                className="flex-1 px-6 py-3 bg-white border border-gray-300 text-gray-700 font-medium rounded-lg hover:bg-gray-50"
+              >
+                Batal
+              </button>
+              <button 
+                type="submit" 
+                disabled={isSubmitting} 
+                className="flex-1 px-6 py-3 bg-primary-600 text-white font-medium rounded-lg hover:bg-primary-700 disabled:opacity-50"
+              >
+                {isSubmitting ? 'Menyimpan...' : 'Simpan'}
+              </button>
+            </div>
+          </form>
+        </div>
+      </div>
+    </div>
+  );
+};
+
 const Accounts = () => {
   const [accounts, setAccounts] = useState([]);
   const [loading, setLoading] = useState(true);
   const [showModal, setShowModal] = useState(false);
   const [editingAccount, setEditingAccount] = useState(null);
-  const [submitting, setSubmitting] = useState(false);
   const [showActionMenu, setShowActionMenu] = useState(null);
-  const [formData, setFormData] = useState({
-    bank_name: '',
-    account_number: '',
-    account_holder: '',
-    is_active: true
-  });
 
   useEffect(() => {
     fetchAccounts();
@@ -34,32 +146,8 @@ const Accounts = () => {
     }
   };
 
-  const handleChange = (e) => {
-    const { name, value, type, checked } = e.target;
-    setFormData({
-      ...formData,
-      [name]: type === 'checkbox' ? checked : value
-    });
-  };
-
   const openModal = (account = null) => {
-    if (account) {
-      setEditingAccount(account);
-      setFormData({
-        bank_name: account.bank_name,
-        account_number: account.account_number,
-        account_holder: account.account_holder,
-        is_active: account.is_active
-      });
-    } else {
-      setEditingAccount(null);
-      setFormData({
-        bank_name: '',
-        account_number: '',
-        account_holder: '',
-        is_active: true
-      });
-    }
+    setEditingAccount(account);
     setShowModal(true);
     setShowActionMenu(null);
   };
@@ -69,25 +157,9 @@ const Accounts = () => {
     setEditingAccount(null);
   };
 
-  const handleSubmit = async (e) => {
-    e.preventDefault();
-    setSubmitting(true);
-
-    try {
-      if (editingAccount) {
-        await accountService.update(editingAccount.id, formData);
-        toast.success('Rekening berhasil diperbarui');
-      } else {
-        await accountService.create(formData);
-        toast.success('Rekening berhasil ditambahkan');
-      }
-      closeModal();
-      fetchAccounts();
-    } catch (error) {
-      toast.error(error.response?.data?.message || 'Gagal menyimpan rekening');
-    } finally {
-      setSubmitting(false);
-    }
+  const handleSuccess = () => {
+    closeModal();
+    fetchAccounts();
   };
 
   const handleDelete = async (id) => {
@@ -255,103 +327,7 @@ const Accounts = () => {
     </div>
   );
 
-  const AccountModal = () => (
-    <div className="fixed inset-0 z-50">
-      <div className="hidden md:block absolute inset-0 bg-black/50 backdrop-blur-sm" onClick={closeModal} />
-      
-      <div className="absolute inset-0 md:flex md:items-center md:justify-center md:p-4">
-        <div className="bg-white w-full h-full md:h-auto md:rounded-xl md:max-w-md overflow-hidden flex flex-col">
-          <div className="flex items-center justify-between p-4 border-b">
-            <div className="flex items-center gap-3">
-              <div className="w-10 h-10 bg-primary-100 rounded-full flex items-center justify-center">
-                <FiCreditCard className="w-5 h-5 text-primary-600" />
-              </div>
-              <h2 className="text-lg font-semibold">
-                {editingAccount ? 'Edit Rekening' : 'Tambah Rekening'}
-              </h2>
-            </div>
-            <button onClick={closeModal} className="p-2 hover:bg-gray-100 rounded-lg">
-              <FiX className="w-5 h-5" />
-            </button>
-          </div>
 
-          <form onSubmit={handleSubmit} className="flex-1 overflow-y-auto">
-            <div className="p-4 space-y-4">
-              <div>
-                <label className="block text-sm font-medium text-gray-700 mb-1.5">Nama Bank</label>
-                <input
-                  type="text"
-                  name="bank_name"
-                  required
-                  value={formData.bank_name}
-                  onChange={handleChange}
-                  className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-primary-500"
-                  placeholder="Contoh: BCA, Mandiri, BNI"
-                />
-              </div>
-
-              <div>
-                <label className="block text-sm font-medium text-gray-700 mb-1.5">Nomor Rekening</label>
-                <input
-                  type="text"
-                  name="account_number"
-                  required
-                  value={formData.account_number}
-                  onChange={handleChange}
-                  className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-primary-500"
-                  placeholder="Contoh: 1234567890"
-                />
-              </div>
-
-              <div>
-                <label className="block text-sm font-medium text-gray-700 mb-1.5">Atas Nama</label>
-                <input
-                  type="text"
-                  name="account_holder"
-                  required
-                  value={formData.account_holder}
-                  onChange={handleChange}
-                  className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-primary-500"
-                  placeholder="Nama pemilik rekening"
-                />
-              </div>
-
-              <div className="flex items-center gap-3 p-3 bg-gray-50 rounded-lg">
-                <input
-                  type="checkbox"
-                  id="is_active"
-                  name="is_active"
-                  checked={formData.is_active}
-                  onChange={handleChange}
-                  className="w-5 h-5 text-primary-600 rounded"
-                />
-                <label htmlFor="is_active" className="font-medium text-gray-700">
-                  Rekening Aktif
-                </label>
-              </div>
-            </div>
-
-            <div className="p-4 border-t bg-gray-50 flex gap-3">
-              <button 
-                type="button" 
-                onClick={closeModal} 
-                className="flex-1 px-6 py-3 bg-white border border-gray-300 text-gray-700 font-medium rounded-lg hover:bg-gray-50"
-              >
-                Batal
-              </button>
-              <button 
-                type="submit" 
-                disabled={submitting} 
-                className="flex-1 px-6 py-3 bg-primary-600 text-white font-medium rounded-lg hover:bg-primary-700 disabled:opacity-50"
-              >
-                {submitting ? 'Menyimpan...' : 'Simpan'}
-              </button>
-            </div>
-          </form>
-        </div>
-      </div>
-    </div>
-  );
 
   return (
     <div className="space-y-4 pb-24 lg:pb-0">
@@ -413,7 +389,7 @@ const Accounts = () => {
         <FiPlus className="w-6 h-6" />
       </button>
 
-      {showModal && <AccountModal />}
+      {showModal && <AccountModal editingAccount={editingAccount} onClose={closeModal} onSuccess={handleSuccess} />}
     </div>
   );
 };

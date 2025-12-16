@@ -1,5 +1,6 @@
 import React, { useState } from 'react';
 import { useParams, Link } from 'react-router-dom';
+import { useForm } from 'react-hook-form';
 import { FiLock, FiEye, FiEyeOff, FiCheck } from 'react-icons/fi';
 import { useAuth } from '../../context/AuthContext';
 import { toast } from 'react-toastify';
@@ -8,42 +9,18 @@ import { ResponsiveContainer, ResponsiveTypography } from '../../components/comm
 const ResetPassword = () => {
   const { token } = useParams();
   const { resetPassword } = useAuth();
-  
-  const [formData, setFormData] = useState({
-    password: '',
-    confirmPassword: ''
-  });
+  const { register, handleSubmit, formState: { isSubmitting, errors }, watch } = useForm();
   const [showPassword, setShowPassword] = useState(false);
-  const [loading, setLoading] = useState(false);
   const [success, setSuccess] = useState(false);
+  const password = watch('password');
 
-  const handleChange = (e) => {
-    setFormData({ ...formData, [e.target.name]: e.target.value });
-  };
-
-  const handleSubmit = async (e) => {
-    e.preventDefault();
-    
-    if (formData.password !== formData.confirmPassword) {
-      toast.error('Password tidak cocok');
-      return;
-    }
-
-    if (formData.password.length < 6) {
-      toast.error('Password minimal 6 karakter');
-      return;
-    }
-
-    setLoading(true);
-    
+  const onSubmit = async (data) => {
     try {
-      await resetPassword(token, formData.password);
+      await resetPassword(token, data.password);
       setSuccess(true);
       toast.success('Password berhasil direset');
     } catch (error) {
       toast.error(error.response?.data?.message || 'Token tidak valid atau sudah kadaluarsa');
-    } finally {
-      setLoading(false);
     }
   };
 
@@ -85,17 +62,17 @@ const ResetPassword = () => {
           </div>
 
           <div className="bg-white rounded-xl shadow-sm p-4 sm:p-6 md:p-8">
-            <form onSubmit={handleSubmit} className="space-y-5 sm:space-y-6">
+            <form onSubmit={handleSubmit(onSubmit)} className="space-y-5 sm:space-y-6">
               <div>
                 <label className="block text-base font-medium text-gray-700 mb-1.5">Password Baru</label>
                 <div className="relative">
                   <FiLock className="absolute left-3 sm:left-4 top-1/2 transform -translate-y-1/2 text-gray-400 w-5 h-5" />
                   <input
                     type={showPassword ? 'text' : 'password'}
-                    name="password"
-                    required
-                    value={formData.password}
-                    onChange={handleChange}
+                    {...register('password', { 
+                      required: 'Password harus diisi',
+                      minLength: { value: 6, message: 'Password minimal 6 karakter' }
+                    })}
                     className="w-full min-h-[48px] pl-10 sm:pl-12 pr-12 py-3 text-base border border-gray-300 rounded-lg focus:ring-2 focus:ring-primary-500 focus:border-primary-500 transition-colors"
                     placeholder="Minimal 6 karakter"
                   />
@@ -107,6 +84,7 @@ const ResetPassword = () => {
                     {showPassword ? <FiEyeOff className="w-5 h-5" /> : <FiEye className="w-5 h-5" />}
                   </button>
                 </div>
+                {errors.password && <p className="text-red-500 text-sm mt-1">{errors.password.message}</p>}
               </div>
 
               <div>
@@ -115,22 +93,23 @@ const ResetPassword = () => {
                   <FiLock className="absolute left-3 sm:left-4 top-1/2 transform -translate-y-1/2 text-gray-400 w-5 h-5" />
                   <input
                     type={showPassword ? 'text' : 'password'}
-                    name="confirmPassword"
-                    required
-                    value={formData.confirmPassword}
-                    onChange={handleChange}
+                    {...register('confirmPassword', { 
+                      required: 'Konfirmasi password harus diisi',
+                      validate: value => value === password || 'Password tidak cocok'
+                    })}
                     className="w-full min-h-[48px] pl-10 sm:pl-12 pr-4 py-3 text-base border border-gray-300 rounded-lg focus:ring-2 focus:ring-primary-500 focus:border-primary-500 transition-colors"
                     placeholder="Ulangi password baru"
                   />
                 </div>
+                {errors.confirmPassword && <p className="text-red-500 text-sm mt-1">{errors.confirmPassword.message}</p>}
               </div>
 
               <button
                 type="submit"
-                disabled={loading}
+                disabled={isSubmitting}
                 className="w-full min-h-[48px] py-3 bg-primary-600 text-white text-base font-medium rounded-lg hover:bg-primary-700 transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
               >
-                {loading ? 'Menyimpan...' : 'Reset Password'}
+                {isSubmitting ? 'Menyimpan...' : 'Reset Password'}
               </button>
             </form>
           </div>
