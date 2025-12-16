@@ -8,6 +8,7 @@ class User {
     const otp = Math.floor(100000 + Math.random() * 900000).toString();
     const otpExpiry = new Date(Date.now() + 5 * 60 * 1000);
 
+    // Default is_deleted di database adalah 0, jadi tidak perlu dimasukkan di insert
     const [result] = await pool.execute(
       'INSERT INTO users (name, email, password, phone, address, otp_code, otp_expiry) VALUES (?, ?, ?, ?, ?, ?, ?)',
       [name, email, hashedPassword, phone || null, address || null, otp, otpExpiry]
@@ -16,11 +17,14 @@ class User {
   }
 
   static async findByEmail(email) {
-    const [rows] = await pool.execute('SELECT * FROM users WHERE email = ?', [email]);
+    // MODIFIKASI: Tambahkan pengecekan is_deleted = 0 agar user yang sudah dihapus tidak bisa login
+    const [rows] = await pool.execute('SELECT * FROM users WHERE email = ? AND is_deleted = 0', [email]);
     return rows[0];
   }
 
   static async findById(id) {
+    // Kita biarkan ini tanpa filter is_deleted agar Admin tetap bisa melihat detail user 
+    // di riwayat pesanan lama meskipun user tersebut sudah dihapus.
     const [rows] = await pool.execute('SELECT id, name, email, phone, address, role, is_verified, created_at FROM users WHERE id = ?', [id]);
     return rows[0];
   }
@@ -70,7 +74,8 @@ class User {
 
   static async updateProfile(id, userData) {
     const { name, phone, address } = userData;
-    await pool.execute('UPDATE users SET name = ?, phone = ?, address = ? WHERE id = ?', [name, phone, address, id]);
+    // MODIFIKASI: Pastikan update hanya bisa dilakukan oleh user yang aktif (is_deleted = 0)
+    await pool.execute('UPDATE users SET name = ?, phone = ?, address = ? WHERE id = ? AND is_deleted = 0', [name, phone, address, id]);
     return this.findById(id);
   }
 
@@ -84,14 +89,18 @@ class User {
   }
 
   static async getAllMembers() {
+    // MODIFIKASI: Filter agar hanya menampilkan user yang belum dihapus di daftar member admin
     const [rows] = await pool.execute(
-      'SELECT id, name, email, phone, address, is_verified, created_at FROM users WHERE role = "user" ORDER BY created_at DESC'
+      'SELECT id, name, email, phone, address, is_verified, created_at FROM users WHERE role = "user" AND is_deleted = 0 ORDER BY created_at DESC'
     );
     return rows;
   }
 
   static async delete(id) {
-    const [result] = await pool.execute('DELETE FROM users WHERE id = ? AND role = "user"', [id]);
+    // PERBAIKAN UTAMA: Ubah DELETE menjadi UPDATE (Soft Delete)
+    // Data user tetap ada di database untuk menjaga relasi order history, 
+    // tapi statusnya 'is_deleted' menjadi 1.
+    const [result] = await pool.execute('UPDATE users SET is_deleted = 1 WHERE id = ? AND role = "user"', [id]);
     return result.affectedRows > 0;
   }
 }
