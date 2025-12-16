@@ -1,51 +1,27 @@
-import React, { useState } from 'react';
+import React, { useState, useRef } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
+import { useForm } from 'react-hook-form';
 import { FiUser, FiMail, FiLock, FiPhone, FiMapPin, FiEye, FiEyeOff } from 'react-icons/fi';
 import { useAuth } from '../../context/AuthContext';
 import { toast } from 'react-toastify';
 import { ResponsiveContainer, ResponsiveTypography } from '../../components/common/ResponsiveLayout';
 
 const Register = () => {
-  const [formData, setFormData] = useState({
-    name: '',
-    email: '',
-    password: '',
-    confirmPassword: '',
-    phone: '',
-    address: ''
-  });
+  const { register, handleSubmit, formState: { errors, isSubmitting }, watch } = useForm();
+  const password = useRef({});
+  password.current = watch("password", "");
   const [showPassword, setShowPassword] = useState(false);
-  const [loading, setLoading] = useState(false);
-  const { register } = useAuth();
+  const { register: registerAuth } = useAuth();
   const navigate = useNavigate();
 
-  const handleChange = (e) => {
-    setFormData({ ...formData, [e.target.name]: e.target.value });
-  };
-
-  const handleSubmit = async (e) => {
-    e.preventDefault();
-    
-    if (formData.password !== formData.confirmPassword) {
-      toast.error('Password tidak cocok!');
-      return;
-    }
-
-    if (formData.password.length < 6) {
-      toast.error('Password minimal 6 karakter!');
-      return;
-    }
-
-    setLoading(true);
+  const onSubmit = async (data) => {
     try {
-      const { confirmPassword, ...registerData } = formData;
-      await register(registerData);
+      const { confirmPassword, ...registerData } = data;
+      await registerAuth(registerData);
       toast.success('Registrasi berhasil! Silakan cek email untuk verifikasi.');
-      navigate('/verify-email', { state: { email: formData.email } });
+      navigate('/verify-email', { state: { email: data.email } });
     } catch (error) {
       toast.error(error.response?.data?.message || 'Terjadi kesalahan saat registrasi');
-    } finally {
-      setLoading(false);
     }
   };
 
@@ -64,20 +40,18 @@ const Register = () => {
           </div>
 
           <div className="bg-white rounded-xl shadow-sm p-4 sm:p-6 md:p-8">
-            <form onSubmit={handleSubmit} className="space-y-4 sm:space-y-5">
+            <form onSubmit={handleSubmit(onSubmit)} className="space-y-4 sm:space-y-5">
               <div>
                 <label className="block text-base font-medium text-gray-700 mb-1.5">Nama Lengkap</label>
                 <div className="relative">
                   <FiUser className="absolute left-3 sm:left-4 top-1/2 transform -translate-y-1/2 text-gray-400 w-5 h-5" />
                   <input
                     type="text"
-                    name="name"
-                    required
-                    value={formData.name}
-                    onChange={handleChange}
+                    {...register('name', { required: 'Nama lengkap harus diisi' })}
                     className="w-full min-h-[48px] pl-10 sm:pl-12 pr-4 py-3 text-base border border-gray-300 rounded-lg focus:ring-2 focus:ring-primary-500 focus:border-primary-500 transition-colors"
                     placeholder="Masukkan nama lengkap"
                   />
+                  {errors.name && <p className="text-red-500 text-sm mt-1">{errors.name.message}</p>}
                 </div>
               </div>
 
@@ -87,13 +61,11 @@ const Register = () => {
                   <FiMail className="absolute left-3 sm:left-4 top-1/2 transform -translate-y-1/2 text-gray-400 w-5 h-5" />
                   <input
                     type="email"
-                    name="email"
-                    required
-                    value={formData.email}
-                    onChange={handleChange}
+                    {...register('email', { required: 'Email harus diisi' })}
                     className="w-full min-h-[48px] pl-10 sm:pl-12 pr-4 py-3 text-base border border-gray-300 rounded-lg focus:ring-2 focus:ring-primary-500 focus:border-primary-500 transition-colors"
                     placeholder="Masukkan email"
                   />
+                  {errors.email && <p className="text-red-500 text-sm mt-1">{errors.email.message}</p>}
                 </div>
               </div>
 
@@ -103,10 +75,10 @@ const Register = () => {
                   <FiLock className="absolute left-3 sm:left-4 top-1/2 transform -translate-y-1/2 text-gray-400 w-5 h-5" />
                   <input
                     type={showPassword ? 'text' : 'password'}
-                    name="password"
-                    required
-                    value={formData.password}
-                    onChange={handleChange}
+                    {...register('password', { 
+                      required: 'Password harus diisi', 
+                      minLength: { value: 6, message: 'Password minimal 6 karakter' } 
+                    })}
                     className="w-full min-h-[48px] pl-10 sm:pl-12 pr-12 py-3 text-base border border-gray-300 rounded-lg focus:ring-2 focus:ring-primary-500 focus:border-primary-500 transition-colors"
                     placeholder="Minimal 6 karakter"
                   />
@@ -118,6 +90,7 @@ const Register = () => {
                     {showPassword ? <FiEyeOff className="w-5 h-5" /> : <FiEye className="w-5 h-5" />}
                   </button>
                 </div>
+                {errors.password && <p className="text-red-500 text-sm mt-1">{errors.password.message}</p>}
               </div>
 
               <div>
@@ -126,14 +99,15 @@ const Register = () => {
                   <FiLock className="absolute left-3 sm:left-4 top-1/2 transform -translate-y-1/2 text-gray-400 w-5 h-5" />
                   <input
                     type={showPassword ? 'text' : 'password'}
-                    name="confirmPassword"
-                    required
-                    value={formData.confirmPassword}
-                    onChange={handleChange}
+                    {...register('confirmPassword', { 
+                      required: 'Konfirmasi password harus diisi',
+                      validate: value => value === password.current || "Password tidak cocok"
+                    })}
                     className="w-full min-h-[48px] pl-10 sm:pl-12 pr-4 py-3 text-base border border-gray-300 rounded-lg focus:ring-2 focus:ring-primary-500 focus:border-primary-500 transition-colors"
                     placeholder="Ulangi password"
                   />
                 </div>
+                {errors.confirmPassword && <p className="text-red-500 text-sm mt-1">{errors.confirmPassword.message}</p>}
               </div>
 
               <div>
@@ -142,9 +116,7 @@ const Register = () => {
                   <FiPhone className="absolute left-3 sm:left-4 top-1/2 transform -translate-y-1/2 text-gray-400 w-5 h-5" />
                   <input
                     type="tel"
-                    name="phone"
-                    value={formData.phone}
-                    onChange={handleChange}
+                    {...register('phone')}
                     className="w-full min-h-[48px] pl-10 sm:pl-12 pr-4 py-3 text-base border border-gray-300 rounded-lg focus:ring-2 focus:ring-primary-500 focus:border-primary-500 transition-colors"
                     placeholder="Contoh: 08123456789"
                   />
@@ -156,9 +128,7 @@ const Register = () => {
                 <div className="relative">
                   <FiMapPin className="absolute left-3 sm:left-4 top-3 text-gray-400 w-5 h-5" />
                   <textarea
-                    name="address"
-                    value={formData.address}
-                    onChange={handleChange}
+                    {...register('address')}
                     rows={3}
                     className="w-full min-h-[100px] pl-10 sm:pl-12 pr-4 py-3 text-base border border-gray-300 rounded-lg focus:ring-2 focus:ring-primary-500 focus:border-primary-500 transition-colors resize-none"
                     placeholder="Masukkan alamat lengkap"
@@ -168,10 +138,10 @@ const Register = () => {
 
               <button
                 type="submit"
-                disabled={loading}
+                disabled={isSubmitting}
                 className="w-full min-h-[48px] py-3 bg-primary-600 text-white text-base font-medium rounded-lg hover:bg-primary-700 transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
               >
-                {loading ? 'Mendaftar...' : 'Daftar Sekarang'}
+                {isSubmitting ? 'Mendaftar...' : 'Daftar Sekarang'}
               </button>
             </form>
           </div>

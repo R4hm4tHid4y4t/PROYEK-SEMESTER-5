@@ -1,4 +1,5 @@
 import React, { useState, useEffect, useRef, useCallback } from 'react';
+import { useForm } from 'react-hook-form';
 import { FiPlus, FiEdit2, FiTrash2, FiImage, FiX, FiGrid, FiList, FiSearch, FiFilter, FiMoreVertical, FiPackage, FiCheck, FiCheckSquare, FiSquare, FiUploadCloud } from 'react-icons/fi';
 import { productService } from '../../services/api';
 import { formatCurrency, getImageUrl } from '../../utils/helpers';
@@ -6,9 +7,316 @@ import Loader from '../../components/common/Loader';
 import { toast } from 'react-toastify';
 import { 
   ResponsiveTableWrapper, 
-  ResponsiveGrid, 
   ResponsiveImage 
 } from '../../components/common/ResponsiveLayout';
+
+const ProductModal = ({ onClose, onSuccess, editingProduct }) => {
+  const { register, handleSubmit, formState: { isSubmitting, errors }, reset, setValue } = useForm({
+    defaultValues: {
+      name: '',
+      description: '',
+      price: '',
+      stock: '',
+      category: '',
+      is_active: true
+    }
+  });
+  const [imageFile, setImageFile] = useState(null);
+  const [imagePreview, setImagePreview] = useState(null);
+  const [isDragging, setIsDragging] = useState(false);
+  const dropZoneRef = useRef(null);
+
+  useEffect(() => {
+    if (editingProduct) {
+      reset({
+        name: editingProduct.name,
+        description: editingProduct.description || '',
+        price: editingProduct.price,
+        stock: editingProduct.stock,
+        category: editingProduct.category || '',
+        is_active: editingProduct.is_active
+      });
+      if (editingProduct.image) {
+        setImagePreview(getImageUrl(editingProduct.image));
+      }
+    }
+  }, [editingProduct, reset]);
+
+  const handleImageChange = (e) => {
+    const file = e.target.files[0];
+    if (file) {
+      if (file.size > 5 * 1024 * 1024) {
+        toast.error('Ukuran file maksimal 5MB');
+        return;
+      }
+      setImageFile(file);
+      setImagePreview(URL.createObjectURL(file));
+      setValue('image', file);
+    }
+  };
+
+  const onSubmit = async (formData) => {
+    try {
+      const data = new FormData();
+      Object.keys(formData).forEach(key => {
+        if (key !== 'image') {
+          data.append(key, formData[key]);
+        }
+      });
+      if (imageFile) {
+        data.append('image', imageFile);
+      }
+
+      if (editingProduct) {
+        await productService.update(editingProduct.id, data);
+        toast.success('Produk berhasil diperbarui');
+      } else {
+        await productService.create(data);
+        toast.success('Produk berhasil ditambahkan');
+      }
+      onSuccess();
+    } catch (error) {
+      toast.error(error.response?.data?.message || 'Gagal menyimpan produk');
+    }
+  };
+
+  const handleDragEnter = useCallback((e) => {
+    e.preventDefault();
+    e.stopPropagation();
+    setIsDragging(true);
+  }, []);
+
+  const handleDragLeave = useCallback((e) => {
+    e.preventDefault();
+    e.stopPropagation();
+    if (dropZoneRef.current && !dropZoneRef.current.contains(e.relatedTarget)) {
+      setIsDragging(false);
+    }
+  }, []);
+
+  const handleDragOver = useCallback((e) => {
+    e.preventDefault();
+    e.stopPropagation();
+  }, []);
+
+  const handleDrop = useCallback((e) => {
+    e.preventDefault();
+    e.stopPropagation();
+    setIsDragging(false);
+
+    const files = e.dataTransfer.files;
+    if (files && files.length > 0) {
+      const file = files[0];
+      if (file.type.startsWith('image/')) {
+        if (file.size > 5 * 1024 * 1024) {
+          toast.error('Ukuran file maksimal 5MB');
+          return;
+        }
+        setImageFile(file);
+        setImagePreview(URL.createObjectURL(file));
+        setValue('image', file);
+      } else {
+        toast.error('File harus berupa gambar');
+      }
+    }
+  }, [setValue]);
+
+  return (
+    <div className="fixed inset-0 z-50">
+      {/* Backdrop */}
+      <div 
+        className="hidden md:block absolute inset-0 bg-black/50 backdrop-blur-sm"
+        onClick={onClose}
+      />
+      
+      {/* Mobile: Full screen | Desktop: Center modal */}
+      <div className="absolute inset-0 md:flex md:items-center md:justify-center md:p-4">
+        <div className="bg-white w-full h-full md:h-auto md:rounded-xl md:max-w-2xl md:max-h-[90vh] overflow-hidden flex flex-col">
+          {/* Header */}
+          <div className="flex items-center justify-between p-4 sm:p-5 border-b flex-shrink-0">
+            <div className="flex items-center gap-3">
+              <div className="w-10 h-10 bg-primary-100 rounded-full flex items-center justify-center">
+                <FiPackage className="w-5 h-5 text-primary-600" />
+              </div>
+              <h2 className="text-lg sm:text-xl font-semibold text-gray-900">
+                {editingProduct ? 'Edit Produk' : 'Tambah Produk'}
+              </h2>
+            </div>
+            <button 
+              onClick={onClose} 
+              className="min-w-[44px] min-h-[44px] p-2 hover:bg-gray-100 rounded-lg transition-colors flex items-center justify-center"
+            >
+              <FiX className="w-5 h-5" />
+            </button>
+          </div>
+
+          {/* Form */}
+          <form onSubmit={handleSubmit(onSubmit)} className="flex-1 overflow-y-auto">
+            <div className="p-4 sm:p-5 space-y-4">
+              {/* Image Upload - Touch-friendly dropzone */}
+              <div>
+                <label className="block text-base font-medium text-gray-700 mb-2">Gambar Produk</label>
+                <div 
+                  ref={dropZoneRef}
+                  onDragEnter={handleDragEnter}
+                  onDragLeave={handleDragLeave}
+                  onDragOver={handleDragOver}
+                  onDrop={handleDrop}
+                  className={`border-2 border-dashed rounded-xl p-4 transition-all ${
+                    isDragging 
+                      ? 'border-primary-500 bg-primary-50' 
+                      : 'border-gray-300 hover:border-primary-400'
+                  }`}
+                >
+                  {imagePreview ? (
+                    <div className="flex flex-col sm:flex-row items-center gap-4">
+                      <img 
+                        src={imagePreview} 
+                        alt="Preview" 
+                        className="w-24 h-24 sm:w-28 sm:h-28 object-cover rounded-lg" 
+                      />
+                      <div className="flex flex-col gap-2 w-full sm:w-auto">
+                        <label className="min-h-[44px] px-4 py-2.5 bg-gray-100 text-gray-700 rounded-lg text-sm font-medium cursor-pointer hover:bg-gray-200 transition-colors text-center flex items-center justify-center gap-2">
+                          <FiImage className="w-5 h-5" />
+                          Ganti Gambar
+                          <input
+                            type="file"
+                            accept="image/*"
+                            onChange={handleImageChange}
+                            className="hidden"
+                          />
+                        </label>
+                        <button
+                          type="button"
+                          onClick={() => {
+                            setImageFile(null);
+                            setImagePreview(null);
+                            setValue('image', null);
+                          }}
+                          className="min-h-[44px] px-4 py-2.5 text-red-600 text-sm font-medium hover:bg-red-50 rounded-lg transition-colors flex items-center justify-center gap-2"
+                        >
+                          <FiTrash2 className="w-5 h-5" />
+                          Hapus
+                        </button>
+                      </div>
+                    </div>
+                  ) : (
+                    <label className="flex flex-col items-center cursor-pointer py-6 min-h-[120px] justify-center">
+                      <div className={`w-16 h-16 rounded-full flex items-center justify-center mb-3 transition-colors ${
+                        isDragging ? 'bg-primary-100' : 'bg-gray-100'
+                      }`}>
+                        <FiUploadCloud className={`w-8 h-8 ${isDragging ? 'text-primary-600' : 'text-gray-400'}`} />
+                      </div>
+                      <span className="text-sm text-gray-600 font-medium text-center">
+                        {isDragging ? 'Lepaskan gambar di sini' : 'Klik atau seret gambar ke sini'}
+                      </span>
+                      <span className="text-xs text-gray-400 mt-1">JPG, PNG (Maks. 5MB)</span>
+                      <input
+                        type="file"
+                        accept="image/*"
+                        onChange={handleImageChange}
+                        className="hidden"
+                      />
+                    </label>
+                  )}
+                </div>
+              </div>
+
+              {/* Product Name */}
+              <div>
+                <label className="block text-base font-medium text-gray-700 mb-1.5">Nama Produk</label>
+                <input
+                  type="text"
+                  {...register('name', { required: 'Nama produk harus diisi' })}
+                  className="w-full min-h-[44px] px-4 py-2.5 text-base border border-gray-300 rounded-lg focus:ring-2 focus:ring-primary-500 focus:border-primary-500 transition-colors"
+                  placeholder="Masukkan nama produk"
+                />
+                {errors.name && <p className="text-red-500 text-sm mt-1">{errors.name.message}</p>}
+              </div>
+
+              {/* Price & Stock */}
+              <div className="grid grid-cols-2 gap-3 sm:gap-4">
+                <div>
+                  <label className="block text-base font-medium text-gray-700 mb-1.5">Harga</label>
+                  <input
+                    type="number"
+                    {...register('price', { required: 'Harga harus diisi', valueAsNumber: true })}
+                    className="w-full min-h-[44px] px-4 py-2.5 text-base border border-gray-300 rounded-lg focus:ring-2 focus:ring-primary-500 focus:border-primary-500 transition-colors"
+                    placeholder="0"
+                  />
+                  {errors.price && <p className="text-red-500 text-sm mt-1">{errors.price.message}</p>}
+                </div>
+                <div>
+                  <label className="block text-base font-medium text-gray-700 mb-1.5">Stok</label>
+                  <input
+                    type="number"
+                    {...register('stock', { required: 'Stok harus diisi', valueAsNumber: true })}
+                    className="w-full min-h-[44px] px-4 py-2.5 text-base border border-gray-300 rounded-lg focus:ring-2 focus:ring-primary-500 focus:border-primary-500 transition-colors"
+                    placeholder="0"
+                  />
+                  {errors.stock && <p className="text-red-500 text-sm mt-1">{errors.stock.message}</p>}
+                </div>
+              </div>
+
+              {/* Category */}
+              <div>
+                <label className="block text-base font-medium text-gray-700 mb-1.5">Kategori</label>
+                <input
+                  type="text"
+                  {...register('category')}
+                  className="w-full min-h-[44px] px-4 py-2.5 text-base border border-gray-300 rounded-lg focus:ring-2 focus:ring-primary-500 focus:border-primary-500 transition-colors"
+                  placeholder="Contoh: Wisuda, Paskibra"
+                />
+              </div>
+
+              {/* Description */}
+              <div>
+                <label className="block text-base font-medium text-gray-700 mb-1.5">Deskripsi</label>
+                <textarea
+                  {...register('description')}
+                  rows={3}
+                  className="w-full min-h-[100px] px-4 py-2.5 text-base border border-gray-300 rounded-lg focus:ring-2 focus:ring-primary-500 focus:border-primary-500 transition-colors resize-none"
+                  placeholder="Deskripsi produk (opsional)"
+                />
+              </div>
+
+              {/* Active Status */}
+              <div className="flex items-center gap-3 p-3 bg-gray-50 rounded-lg min-h-[44px]">
+                <input
+                  type="checkbox"
+                  id="is_active"
+                  {...register('is_active')}
+                  className="w-5 h-5 text-primary-600 rounded focus:ring-primary-500"
+                />
+                <label htmlFor="is_active" className="text-base font-medium text-gray-700">
+                  Produk Aktif (tampil di katalog)
+                </label>
+              </div>
+            </div>
+
+            {/* Footer */}
+            <div className="p-4 sm:p-5 border-t bg-gray-50 flex flex-col sm:flex-row gap-3">
+              <button 
+                type="button" 
+                onClick={onClose} 
+                className="min-h-[44px] px-6 py-2.5 bg-white border border-gray-300 text-gray-700 font-medium rounded-lg hover:bg-gray-50 transition-colors sm:flex-1"
+              >
+                Batal
+              </button>
+              <button 
+                type="submit" 
+                disabled={isSubmitting} 
+                className="min-h-[44px] px-6 py-2.5 bg-primary-600 text-white font-medium rounded-lg hover:bg-primary-700 transition-colors disabled:opacity-50 sm:flex-1"
+              >
+                {isSubmitting ? 'Menyimpan...' : 'Simpan Produk'}
+              </button>
+            </div>
+          </form>
+        </div>
+      </div>
+    </div>
+  );
+}
 
 const Products = () => {
   const [products, setProducts] = useState([]);
@@ -16,40 +324,16 @@ const Products = () => {
   const [loading, setLoading] = useState(true);
   const [showModal, setShowModal] = useState(false);
   const [editingProduct, setEditingProduct] = useState(null);
-  const [submitting, setSubmitting] = useState(false);
   const [viewMode, setViewMode] = useState('list');
-  const [mobileViewMode, setMobileViewMode] = useState('list'); // Separate mobile view mode
+  const [mobileViewMode, setMobileViewMode] = useState('list');
   const [searchQuery, setSearchQuery] = useState('');
   const [showFilters, setShowFilters] = useState(false);
   const [filterCategory, setFilterCategory] = useState('');
   const [filterStatus, setFilterStatus] = useState('');
   const [showActionMenu, setShowActionMenu] = useState(null);
-  const [formData, setFormData] = useState({
-    name: '',
-    description: '',
-    price: '',
-    stock: '',
-    category: '',
-    is_active: true
-  });
-  const [imageFile, setImageFile] = useState(null);
-  const [imagePreview, setImagePreview] = useState(null);
-  // Bulk selection state
   const [selectedProducts, setSelectedProducts] = useState([]);
-  const [showBulkActions, setShowBulkActions] = useState(false);
-  // Drag and drop state
-  const [isDragging, setIsDragging] = useState(false);
-  const dropZoneRef = useRef(null);
 
-  useEffect(() => {
-    fetchProducts();
-  }, []);
-
-  useEffect(() => {
-    filterProducts();
-  }, [products, searchQuery, filterCategory, filterStatus]);
-
-  const fetchProducts = async () => {
+  const fetchProducts = useCallback(async () => {
     try {
       const response = await productService.getAllAdmin();
       setProducts(response.data.products);
@@ -59,9 +343,13 @@ const Products = () => {
     } finally {
       setLoading(false);
     }
-  };
+  }, []);
 
-  const filterProducts = () => {
+  useEffect(() => {
+    fetchProducts();
+  }, [fetchProducts]);
+
+  useEffect(() => {
     let filtered = [...products];
     
     if (searchQuery) {
@@ -80,55 +368,12 @@ const Products = () => {
     }
     
     setFilteredProducts(filtered);
-  };
+  }, [products, searchQuery, filterCategory, filterStatus]);
 
   const categories = [...new Set(products.map(p => p.category).filter(Boolean))];
 
-  const handleChange = (e) => {
-    const { name, value, type, checked } = e.target;
-    setFormData({
-      ...formData,
-      [name]: type === 'checkbox' ? checked : value
-    });
-  };
-
-  const handleImageChange = (e) => {
-    const file = e.target.files[0];
-    if (file) {
-      if (file.size > 5 * 1024 * 1024) {
-        toast.error('Ukuran file maksimal 5MB');
-        return;
-      }
-      setImageFile(file);
-      setImagePreview(URL.createObjectURL(file));
-    }
-  };
-
   const openModal = (product = null) => {
-    if (product) {
-      setEditingProduct(product);
-      setFormData({
-        name: product.name,
-        description: product.description || '',
-        price: product.price,
-        stock: product.stock,
-        category: product.category || '',
-        is_active: product.is_active
-      });
-      setImagePreview(product.image ? getImageUrl(product.image) : null);
-    } else {
-      setEditingProduct(null);
-      setFormData({
-        name: '',
-        description: '',
-        price: '',
-        stock: '',
-        category: '',
-        is_active: true
-      });
-      setImagePreview(null);
-    }
-    setImageFile(null);
+    setEditingProduct(product);
     setShowModal(true);
     setShowActionMenu(null);
   };
@@ -136,41 +381,11 @@ const Products = () => {
   const closeModal = () => {
     setShowModal(false);
     setEditingProduct(null);
-    setImageFile(null);
-    setImagePreview(null);
   };
-
-  const handleSubmit = async (e) => {
-    e.preventDefault();
-    setSubmitting(true);
-
-    try {
-      const data = new FormData();
-      data.append('name', formData.name);
-      data.append('description', formData.description);
-      data.append('price', formData.price);
-      data.append('stock', formData.stock);
-      data.append('category', formData.category);
-      data.append('is_active', formData.is_active);
-      if (imageFile) {
-        data.append('image', imageFile);
-      }
-
-      if (editingProduct) {
-        await productService.update(editingProduct.id, data);
-        toast.success('Produk berhasil diperbarui');
-      } else {
-        await productService.create(data);
-        toast.success('Produk berhasil ditambahkan');
-      }
-
-      closeModal();
-      fetchProducts();
-    } catch (error) {
-      toast.error(error.response?.data?.message || 'Gagal menyimpan produk');
-    } finally {
-      setSubmitting(false);
-    }
+  
+  const handleSuccess = () => {
+    closeModal();
+    fetchProducts();
   };
 
   const handleDelete = async (id) => {
@@ -211,7 +426,6 @@ const Products = () => {
       await Promise.all(selectedProducts.map(id => productService.delete(id)));
       toast.success(`${selectedProducts.length} produk berhasil dihapus`);
       setSelectedProducts([]);
-      setShowBulkActions(false);
       fetchProducts();
     } catch (error) {
       toast.error('Gagal menghapus beberapa produk');
@@ -227,53 +441,11 @@ const Products = () => {
       ));
       toast.success(`${selectedProducts.length} produk berhasil diperbarui`);
       setSelectedProducts([]);
-      setShowBulkActions(false);
       fetchProducts();
     } catch (error) {
       toast.error('Gagal memperbarui status produk');
     }
   };
-
-  // Drag and drop handlers for image upload
-  const handleDragEnter = useCallback((e) => {
-    e.preventDefault();
-    e.stopPropagation();
-    setIsDragging(true);
-  }, []);
-
-  const handleDragLeave = useCallback((e) => {
-    e.preventDefault();
-    e.stopPropagation();
-    if (dropZoneRef.current && !dropZoneRef.current.contains(e.relatedTarget)) {
-      setIsDragging(false);
-    }
-  }, []);
-
-  const handleDragOver = useCallback((e) => {
-    e.preventDefault();
-    e.stopPropagation();
-  }, []);
-
-  const handleDrop = useCallback((e) => {
-    e.preventDefault();
-    e.stopPropagation();
-    setIsDragging(false);
-
-    const files = e.dataTransfer.files;
-    if (files && files.length > 0) {
-      const file = files[0];
-      if (file.type.startsWith('image/')) {
-        if (file.size > 5 * 1024 * 1024) {
-          toast.error('Ukuran file maksimal 5MB');
-          return;
-        }
-        setImageFile(file);
-        setImagePreview(URL.createObjectURL(file));
-      } else {
-        toast.error('File harus berupa gambar');
-      }
-    }
-  }, []);
 
   const ProductCard = ({ product, selectable = false }) => {
     const isSelected = selectedProducts.includes(product.id);
@@ -420,214 +592,7 @@ const Products = () => {
       </div>
     );
   };
-
-  const ProductModal = () => (
-    <div className="fixed inset-0 z-50">
-      {/* Backdrop */}
-      <div 
-        className="hidden md:block absolute inset-0 bg-black/50 backdrop-blur-sm"
-        onClick={closeModal}
-      />
-      
-      {/* Mobile: Full screen | Desktop: Center modal */}
-      <div className="absolute inset-0 md:flex md:items-center md:justify-center md:p-4">
-        <div className="bg-white w-full h-full md:h-auto md:rounded-xl md:max-w-2xl md:max-h-[90vh] overflow-hidden flex flex-col">
-          {/* Header */}
-          <div className="flex items-center justify-between p-4 sm:p-5 border-b flex-shrink-0">
-            <div className="flex items-center gap-3">
-              <div className="w-10 h-10 bg-primary-100 rounded-full flex items-center justify-center">
-                <FiPackage className="w-5 h-5 text-primary-600" />
-              </div>
-              <h2 className="text-lg sm:text-xl font-semibold text-gray-900">
-                {editingProduct ? 'Edit Produk' : 'Tambah Produk'}
-              </h2>
-            </div>
-            <button 
-              onClick={closeModal} 
-              className="min-w-[44px] min-h-[44px] p-2 hover:bg-gray-100 rounded-lg transition-colors flex items-center justify-center"
-            >
-              <FiX className="w-5 h-5" />
-            </button>
-          </div>
-
-          {/* Form */}
-          <form onSubmit={handleSubmit} className="flex-1 overflow-y-auto">
-            <div className="p-4 sm:p-5 space-y-4">
-              {/* Image Upload - Touch-friendly dropzone */}
-              <div>
-                <label className="block text-base font-medium text-gray-700 mb-2">Gambar Produk</label>
-                <div 
-                  ref={dropZoneRef}
-                  onDragEnter={handleDragEnter}
-                  onDragLeave={handleDragLeave}
-                  onDragOver={handleDragOver}
-                  onDrop={handleDrop}
-                  className={`border-2 border-dashed rounded-xl p-4 transition-all ${
-                    isDragging 
-                      ? 'border-primary-500 bg-primary-50' 
-                      : 'border-gray-300 hover:border-primary-400'
-                  }`}
-                >
-                  {imagePreview ? (
-                    <div className="flex flex-col sm:flex-row items-center gap-4">
-                      <img 
-                        src={imagePreview} 
-                        alt="Preview" 
-                        className="w-24 h-24 sm:w-28 sm:h-28 object-cover rounded-lg" 
-                      />
-                      <div className="flex flex-col gap-2 w-full sm:w-auto">
-                        <label className="min-h-[44px] px-4 py-2.5 bg-gray-100 text-gray-700 rounded-lg text-sm font-medium cursor-pointer hover:bg-gray-200 transition-colors text-center flex items-center justify-center gap-2">
-                          <FiImage className="w-5 h-5" />
-                          Ganti Gambar
-                          <input
-                            type="file"
-                            accept="image/*"
-                            onChange={handleImageChange}
-                            className="hidden"
-                          />
-                        </label>
-                        <button
-                          type="button"
-                          onClick={() => {
-                            setImageFile(null);
-                            setImagePreview(null);
-                          }}
-                          className="min-h-[44px] px-4 py-2.5 text-red-600 text-sm font-medium hover:bg-red-50 rounded-lg transition-colors flex items-center justify-center gap-2"
-                        >
-                          <FiTrash2 className="w-5 h-5" />
-                          Hapus
-                        </button>
-                      </div>
-                    </div>
-                  ) : (
-                    <label className="flex flex-col items-center cursor-pointer py-6 min-h-[120px] justify-center">
-                      <div className={`w-16 h-16 rounded-full flex items-center justify-center mb-3 transition-colors ${
-                        isDragging ? 'bg-primary-100' : 'bg-gray-100'
-                      }`}>
-                        <FiUploadCloud className={`w-8 h-8 ${isDragging ? 'text-primary-600' : 'text-gray-400'}`} />
-                      </div>
-                      <span className="text-sm text-gray-600 font-medium text-center">
-                        {isDragging ? 'Lepaskan gambar di sini' : 'Klik atau seret gambar ke sini'}
-                      </span>
-                      <span className="text-xs text-gray-400 mt-1">JPG, PNG (Maks. 5MB)</span>
-                      <input
-                        type="file"
-                        accept="image/*"
-                        onChange={handleImageChange}
-                        className="hidden"
-                      />
-                    </label>
-                  )}
-                </div>
-              </div>
-
-              {/* Product Name */}
-              <div>
-                <label className="block text-base font-medium text-gray-700 mb-1.5">Nama Produk</label>
-                <input
-                  type="text"
-                  name="name"
-                  required
-                  value={formData.name}
-                  onChange={handleChange}
-                  className="w-full min-h-[44px] px-4 py-2.5 text-base border border-gray-300 rounded-lg focus:ring-2 focus:ring-primary-500 focus:border-primary-500 transition-colors"
-                  placeholder="Masukkan nama produk"
-                />
-              </div>
-
-              {/* Price & Stock */}
-              <div className="grid grid-cols-2 gap-3 sm:gap-4">
-                <div>
-                  <label className="block text-base font-medium text-gray-700 mb-1.5">Harga</label>
-                  <input
-                    type="number"
-                    name="price"
-                    required
-                    value={formData.price}
-                    onChange={handleChange}
-                    className="w-full min-h-[44px] px-4 py-2.5 text-base border border-gray-300 rounded-lg focus:ring-2 focus:ring-primary-500 focus:border-primary-500 transition-colors"
-                    placeholder="0"
-                  />
-                </div>
-                <div>
-                  <label className="block text-base font-medium text-gray-700 mb-1.5">Stok</label>
-                  <input
-                    type="number"
-                    name="stock"
-                    required
-                    value={formData.stock}
-                    onChange={handleChange}
-                    className="w-full min-h-[44px] px-4 py-2.5 text-base border border-gray-300 rounded-lg focus:ring-2 focus:ring-primary-500 focus:border-primary-500 transition-colors"
-                    placeholder="0"
-                  />
-                </div>
-              </div>
-
-              {/* Category */}
-              <div>
-                <label className="block text-base font-medium text-gray-700 mb-1.5">Kategori</label>
-                <input
-                  type="text"
-                  name="category"
-                  value={formData.category}
-                  onChange={handleChange}
-                  className="w-full min-h-[44px] px-4 py-2.5 text-base border border-gray-300 rounded-lg focus:ring-2 focus:ring-primary-500 focus:border-primary-500 transition-colors"
-                  placeholder="Contoh: Wisuda, Paskibra"
-                />
-              </div>
-
-              {/* Description */}
-              <div>
-                <label className="block text-base font-medium text-gray-700 mb-1.5">Deskripsi</label>
-                <textarea
-                  name="description"
-                  value={formData.description}
-                  onChange={handleChange}
-                  rows={3}
-                  className="w-full min-h-[100px] px-4 py-2.5 text-base border border-gray-300 rounded-lg focus:ring-2 focus:ring-primary-500 focus:border-primary-500 transition-colors resize-none"
-                  placeholder="Deskripsi produk (opsional)"
-                />
-              </div>
-
-              {/* Active Status */}
-              <div className="flex items-center gap-3 p-3 bg-gray-50 rounded-lg min-h-[44px]">
-                <input
-                  type="checkbox"
-                  id="is_active"
-                  name="is_active"
-                  checked={formData.is_active}
-                  onChange={handleChange}
-                  className="w-5 h-5 text-primary-600 rounded focus:ring-primary-500"
-                />
-                <label htmlFor="is_active" className="text-base font-medium text-gray-700">
-                  Produk Aktif (tampil di katalog)
-                </label>
-              </div>
-            </div>
-
-            {/* Footer */}
-            <div className="p-4 sm:p-5 border-t bg-gray-50 flex flex-col sm:flex-row gap-3">
-              <button 
-                type="button" 
-                onClick={closeModal} 
-                className="min-h-[44px] px-6 py-2.5 bg-white border border-gray-300 text-gray-700 font-medium rounded-lg hover:bg-gray-50 transition-colors sm:flex-1"
-              >
-                Batal
-              </button>
-              <button 
-                type="submit" 
-                disabled={submitting} 
-                className="min-h-[44px] px-6 py-2.5 bg-primary-600 text-white font-medium rounded-lg hover:bg-primary-700 transition-colors disabled:opacity-50 sm:flex-1"
-              >
-                {submitting ? 'Menyimpan...' : 'Simpan Produk'}
-              </button>
-            </div>
-          </form>
-        </div>
-      </div>
-    </div>
-  );
-
+  
   if (loading) {
     return <Loader fullScreen />;
   }
@@ -970,7 +935,7 @@ const Products = () => {
       </button>
 
       {/* Modal */}
-      {showModal && <ProductModal />}
+      {showModal && <ProductModal onClose={closeModal} onSuccess={handleSuccess} editingProduct={editingProduct} />}
     </div>
   );
 };
