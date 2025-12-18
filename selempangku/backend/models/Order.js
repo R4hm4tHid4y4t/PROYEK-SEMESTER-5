@@ -96,26 +96,47 @@ class Order {
     return rows;
   }
 
-  static async getSalesData(period = 'monthly') {
-    let query;
-    if (period === 'daily') {
-      query = `
-        SELECT DATE(created_at) as date, SUM(total_price) as total, COUNT(*) as count
-        FROM orders WHERE status = 'Selesai'
-        AND created_at >= DATE_SUB(NOW(), INTERVAL 30 DAY)
-        GROUP BY DATE(created_at)
-        ORDER BY date
-      `;
+  // --- UPDATED METHOD ---
+  static async getSalesData(period, startDate, endDate) {
+    let query = "";
+    const params = [];
+
+    // Tentukan pengelompokan (Grouping)
+    // Jika monthly -> Group by Bulan (YYYY-MM)
+    // Jika daily/custom -> Group by Hari (YYYY-MM-DD)
+    const isMonthly = period === 'monthly';
+    
+    const selectClause = isMonthly 
+      ? "DATE_FORMAT(created_at, '%Y-%m') as date" 
+      : "DATE(created_at) as date";
+      
+    const groupByClause = isMonthly 
+      ? "DATE_FORMAT(created_at, '%Y-%m')" 
+      : "DATE(created_at)";
+
+    // Base Query
+    query = `
+      SELECT ${selectClause}, SUM(total_price) as total, COUNT(*) as count
+      FROM orders 
+      WHERE status = 'Selesai'
+    `;
+
+    // Logika Filter Tanggal
+    if (startDate && endDate) {
+      // Prioritas 1: Jika ada Custom Date Range
+      query += " AND DATE(created_at) BETWEEN ? AND ?";
+      params.push(startDate, endDate);
+    } else if (period === 'daily') {
+      // Prioritas 2: Default Harian (30 Hari Terakhir)
+      query += " AND created_at >= DATE_SUB(NOW(), INTERVAL 30 DAY)";
     } else {
-      query = `
-        SELECT DATE_FORMAT(created_at, '%Y-%m') as date, SUM(total_price) as total, COUNT(*) as count
-        FROM orders WHERE status = 'Selesai'
-        AND created_at >= DATE_SUB(NOW(), INTERVAL 12 MONTH)
-        GROUP BY DATE_FORMAT(created_at, '%Y-%m')
-        ORDER BY date
-      `;
+      // Prioritas 3: Default Bulanan (12 Bulan Terakhir)
+      query += " AND created_at >= DATE_SUB(NOW(), INTERVAL 12 MONTH)";
     }
-    const [rows] = await pool.execute(query);
+
+    query += ` GROUP BY ${groupByClause} ORDER BY date ASC`;
+
+    const [rows] = await pool.execute(query, params);
     return rows;
   }
 }

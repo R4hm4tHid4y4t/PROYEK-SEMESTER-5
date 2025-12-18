@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useMemo } from 'react';
 import { FiCalendar, FiTrendingUp, FiDollarSign, FiShoppingCart, FiX, FiChevronLeft, FiChevronRight, FiDownload } from 'react-icons/fi';
 import { LineChart, Line, BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer, Legend } from 'recharts';
 import { reportService } from '../../services/api';
@@ -13,7 +13,7 @@ const Reports = () => {
     startDate: '',
     endDate: ''
   });
-  const [salesData, setSalesData] = useState([]);
+  // Kita ignore salesData dari backend, kita hitung sendiri dari transactions
   const [summary, setSummary] = useState({
     totalRevenue: 0,
     totalOrders: 0,
@@ -43,30 +43,120 @@ const Reports = () => {
       setLoading(true);
       const params = { period, ...dateRange };
       const response = await reportService.getSales(params);
-      setSalesData(response.data.salesData);
-      setSummary(response.data.summary);
-      setTransactions(response.data.transactions);
+      
+      setSummary(response.data.summary || { totalRevenue: 0, totalOrders: 0, averageOrderValue: 0 });
+      setTransactions(response.data.transactions || []);
+      
     } catch (error) {
       console.error('Error fetching report:', error);
+      setTransactions([]);
     } finally {
       setLoading(false);
     }
   };
 
+  // --- LOGIC BARU: GENERATE GRAFIK DARI TRANSAKSI ---
+  const processedSalesData = useMemo(() => {
+    if (!transactions || transactions.length === 0) return [];
+
+    // 1. Tentukan Mode Grouping (Bulanan atau Harian)
+    // Jika period 'monthly' dan tidak ada custom date -> Group by Month
+    const isMonthlyView = period === 'monthly' && !dateRange.startDate;
+
+    // 2. Grouping Data Transaksi
+    const grouped = {};
+    
+    transactions.forEach(tx => {
+        // Skip jika created_at tidak valid
+        if(!tx.created_at) return;
+
+        const date = new Date(tx.created_at);
+        let key;
+        
+        if (isMonthlyView) {
+            // Format: YYYY-MM
+            const month = String(date.getMonth() + 1).padStart(2, '0');
+            key = `${date.getFullYear()}-${month}`;
+        } else {
+            // Format: YYYY-MM-DD
+            const month = String(date.getMonth() + 1).padStart(2, '0');
+            const day = String(date.getDate()).padStart(2, '0');
+            key = `${date.getFullYear()}-${month}-${day}`;
+        }
+
+        if (!grouped[key]) grouped[key] = { date: key, total: 0, count: 0 };
+        grouped[key].total += parseFloat(tx.total_price || 0);
+        grouped[key].count += 1;
+    });
+
+    // 3. Sorting Key untuk menentukan Range
+    const sortedKeys = Object.keys(grouped).sort();
+    if (sortedKeys.length === 0) return [];
+
+    // 4. Data Filling (Isi kekosongan tanggal)
+    const filledData = [];
+    
+    // Tentukan Start & End Date untuk loop
+    // Jika user pilih Custom Range, gunakan itu. Jika tidak, gunakan min/max dari data transaksi.
+    let startStr = dateRange.startDate || sortedKeys[0];
+    let endStr = dateRange.endDate || sortedKeys[sortedKeys.length - 1];
+    
+    // Validasi format string YYYY-MM (jika monthly view dari data tapi filter kosong)
+    if (isMonthlyView && startStr.length > 7) startStr = startStr.substring(0, 7);
+    if (isMonthlyView && endStr.length > 7) endStr = endStr.substring(0, 7);
+
+    let current = new Date(startStr + (isMonthlyView ? '-01' : ''));
+    const end = new Date(endStr + (isMonthlyView ? '-01' : ''));
+
+    // Loop
+    while (current <= end) {
+        const year = current.getFullYear();
+        const month = String(current.getMonth() + 1).padStart(2, '0');
+        let key;
+
+        if (isMonthlyView) {
+            key = `${year}-${month}`;
+            // Increment Month
+            current.setMonth(current.getMonth() + 1);
+        } else {
+            const day = String(current.getDate()).padStart(2, '0');
+            key = `${year}-${month}-${day}`;
+            // Increment Day
+            current.setDate(current.getDate() + 1);
+        }
+
+        if (grouped[key]) {
+            filledData.push(grouped[key]);
+        } else {
+            filledData.push({ date: key, total: 0, count: 0 });
+        }
+    }
+
+    return filledData;
+  }, [transactions, period, dateRange]);
+
+
   const handleDateChange = (e) => {
     setDateRange({ ...dateRange, [e.target.name]: e.target.value });
+    if(period !== 'custom') setPeriod('custom');
   };
 
   const clearDateRange = () => {
     setDateRange({ startDate: '', endDate: '' });
+    setPeriod('monthly'); // Reset ke default
   };
 
-  // Logic Export
   const handleExport = async () => {
     try {
       setIsExporting(true);
       const response = await reportService.export(exportConfig);
       
+      if (response.data.type === 'application/json') {
+          const text = await response.data.text();
+          const json = JSON.parse(text);
+          throw new Error(json.message || 'Gagal export');
+      }
+
       const url = window.URL.createObjectURL(new Blob([response.data]));
       const link = document.createElement('a');
       link.href = url;
@@ -82,7 +172,13 @@ const Reports = () => {
       setShowExportModal(false);
     } catch (error) {
       console.error('Export error:', error);
-      alert('Gagal mengunduh laporan');
+      if (error.response && error.response.status === 404) {
+         alert("Data transaksi tidak ditemukan untuk periode yang dipilih. Laporan tidak dapat diexport.");
+      } else if (error.message) {
+         alert(error.message);
+      } else {
+         alert('Gagal mengunduh laporan. Pastikan ada data untuk periode tersebut.');
+      }
     } finally {
       setIsExporting(false);
     }
@@ -174,72 +270,71 @@ const Reports = () => {
   };
 
   const DateSheet = () => (
-    <>
-      {showDateSheet && (
-        <div 
-          className="md:hidden fixed inset-0 bg-black/50 z-40"
-          onClick={() => setShowDateSheet(false)}
-        />
-      )}
-      <div className={`md:hidden fixed inset-x-0 bottom-0 bg-white rounded-t-2xl z-50 transform transition-transform duration-300 ${
-        showDateSheet ? 'translate-y-0' : 'translate-y-full'
-      }`}>
-        <div className="p-4 border-b">
-          <div className="w-12 h-1.5 bg-gray-300 rounded-full mx-auto mb-4" />
-          <div className="flex items-center justify-between">
-            <h3 className="font-semibold text-lg">Filter Tanggal</h3>
-            <button onClick={() => setShowDateSheet(false)} className="p-2 hover:bg-gray-100 rounded-lg">
-              <FiX className="w-5 h-5" />
-            </button>
+      <>
+        {showDateSheet && (
+          <div 
+            className="md:hidden fixed inset-0 bg-black/50 z-40"
+            onClick={() => setShowDateSheet(false)}
+          />
+        )}
+        <div className={`md:hidden fixed inset-x-0 bottom-0 bg-white rounded-t-2xl z-50 transform transition-transform duration-300 ${
+          showDateSheet ? 'translate-y-0' : 'translate-y-full'
+        }`}>
+          <div className="p-4 border-b">
+            <div className="w-12 h-1.5 bg-gray-300 rounded-full mx-auto mb-4" />
+            <div className="flex items-center justify-between">
+              <h3 className="font-semibold text-lg">Filter Tanggal</h3>
+              <button onClick={() => setShowDateSheet(false)} className="p-2 hover:bg-gray-100 rounded-lg">
+                <FiX className="w-5 h-5" />
+              </button>
+            </div>
+          </div>
+          
+          <div className="p-4 space-y-4">
+            <div>
+              <label className="block text-sm font-medium text-gray-700 mb-2">Dari Tanggal</label>
+              <input
+                type="date"
+                name="startDate"
+                value={dateRange.startDate}
+                onChange={handleDateChange}
+                className="w-full px-4 py-3 border border-gray-300 rounded-lg"
+              />
+            </div>
+            <div>
+              <label className="block text-sm font-medium text-gray-700 mb-2">Sampai Tanggal</label>
+              <input
+                type="date"
+                name="endDate"
+                value={dateRange.endDate}
+                onChange={handleDateChange}
+                className="w-full px-4 py-3 border border-gray-300 rounded-lg"
+              />
+            </div>
+            <div className="flex gap-3 pt-2">
+              <button
+                onClick={() => {
+                  clearDateRange();
+                  setShowDateSheet(false);
+                }}
+                className="flex-1 px-4 py-3 bg-gray-100 text-gray-700 font-medium rounded-xl"
+              >
+                Reset
+              </button>
+              <button
+                onClick={() => setShowDateSheet(false)}
+                className="flex-1 px-4 py-3 bg-primary-600 text-white font-medium rounded-xl"
+              >
+                Terapkan
+              </button>
+            </div>
           </div>
         </div>
-        
-        <div className="p-4 space-y-4">
-          <div>
-            <label className="block text-sm font-medium text-gray-700 mb-2">Dari Tanggal</label>
-            <input
-              type="date"
-              name="startDate"
-              value={dateRange.startDate}
-              onChange={handleDateChange}
-              className="w-full px-4 py-3 border border-gray-300 rounded-lg"
-            />
-          </div>
-          <div>
-            <label className="block text-sm font-medium text-gray-700 mb-2">Sampai Tanggal</label>
-            <input
-              type="date"
-              name="endDate"
-              value={dateRange.endDate}
-              onChange={handleDateChange}
-              className="w-full px-4 py-3 border border-gray-300 rounded-lg"
-            />
-          </div>
-          <div className="flex gap-3 pt-2">
-            <button
-              onClick={() => {
-                clearDateRange();
-                setShowDateSheet(false);
-              }}
-              className="flex-1 px-4 py-3 bg-gray-100 text-gray-700 font-medium rounded-xl"
-            >
-              Reset
-            </button>
-            <button
-              onClick={() => setShowDateSheet(false)}
-              className="flex-1 px-4 py-3 bg-primary-600 text-white font-medium rounded-xl"
-            >
-              Terapkan
-            </button>
-          </div>
-        </div>
-      </div>
-    </>
+      </>
   );
 
   const Pagination = () => {
     if (totalPages <= 1) return null;
-
     return (
       <div className="flex items-center justify-center gap-2 mt-4">
         <button
@@ -306,7 +401,7 @@ const Reports = () => {
       <div className="bg-white rounded-xl shadow-sm p-4 space-y-4">
         <div className="flex gap-2">
           <button
-            onClick={() => setPeriod('daily')}
+            onClick={() => { setPeriod('daily'); setDateRange({startDate: '', endDate: ''}); }}
             className={`flex-1 md:flex-none px-4 py-2 rounded-lg font-medium transition-colors ${
               period === 'daily' ? 'bg-primary-600 text-white' : 'bg-gray-100 text-gray-700'
             }`}
@@ -314,7 +409,7 @@ const Reports = () => {
             Harian
           </button>
           <button
-            onClick={() => setPeriod('monthly')}
+            onClick={() => { setPeriod('monthly'); setDateRange({startDate: '', endDate: ''}); }}
             className={`flex-1 md:flex-none px-4 py-2 rounded-lg font-medium transition-colors ${
               period === 'monthly' ? 'bg-primary-600 text-white' : 'bg-gray-100 text-gray-700'
             }`}
@@ -406,14 +501,14 @@ const Reports = () => {
         </div>
       </ResponsiveGrid>
 
-      {/* Charts */}
+      {/* Charts - MENGGUNAKAN processedSalesData */}
       <div className="grid grid-cols-1 gap-4 md:gap-6">
         <div className="bg-white rounded-xl shadow-sm p-4">
           <h2 className="text-base md:text-lg font-semibold mb-4">Grafik Penjualan</h2>
-          {salesData.length > 0 ? (
+          {processedSalesData.length > 0 ? (
             <div className="h-64 md:h-80">
               <ResponsiveContainer width="100%" height="100%">
-                <LineChart data={salesData}>
+                <LineChart data={processedSalesData}>
                   <CartesianGrid strokeDasharray="3 3" />
                   <XAxis dataKey="date" tick={{ fontSize: 11 }} />
                   <YAxis tick={{ fontSize: 11 }} />
@@ -424,18 +519,19 @@ const Reports = () => {
               </ResponsiveContainer>
             </div>
           ) : (
-            <div className="h-64 flex items-center justify-center text-gray-500">
-              Tidak ada data untuk periode ini
+            <div className="h-64 md:h-80 flex flex-col items-center justify-center text-gray-400 border-2 border-dashed border-gray-100 rounded-lg">
+              <FiTrendingUp className="w-12 h-12 mb-2 opacity-50" />
+              <p>Tidak ada data penjualan pada periode ini</p>
             </div>
           )}
         </div>
 
         <div className="bg-white rounded-xl shadow-sm p-4">
           <h2 className="text-base md:text-lg font-semibold mb-4">Jumlah Pesanan</h2>
-          {salesData.length > 0 ? (
+          {processedSalesData.length > 0 ? (
             <div className="h-64 md:h-80">
               <ResponsiveContainer width="100%" height="100%">
-                <BarChart data={salesData}>
+                <BarChart data={processedSalesData}>
                   <CartesianGrid strokeDasharray="3 3" />
                   <XAxis dataKey="date" tick={{ fontSize: 11 }} />
                   <YAxis tick={{ fontSize: 11 }} />
@@ -446,8 +542,9 @@ const Reports = () => {
               </ResponsiveContainer>
             </div>
           ) : (
-            <div className="h-64 flex items-center justify-center text-gray-500">
-              Tidak ada data untuk periode ini
+            <div className="h-64 md:h-80 flex flex-col items-center justify-center text-gray-400 border-2 border-dashed border-gray-100 rounded-lg">
+              <FiShoppingCart className="w-12 h-12 mb-2 opacity-50" />
+              <p>Tidak ada pesanan pada periode ini</p>
             </div>
           )}
         </div>
@@ -461,7 +558,7 @@ const Reports = () => {
 
         <div className="md:hidden p-4 space-y-3">
           {paginatedTransactions.length === 0 ? (
-            <p className="text-center py-8 text-gray-500">Tidak ada transaksi</p>
+            <p className="text-center py-8 text-gray-500">Tidak ada transaksi pada periode ini</p>
           ) : (
             paginatedTransactions.map((tx) => <TransactionCard key={tx.id} tx={tx} />)
           )}
@@ -482,7 +579,7 @@ const Reports = () => {
               {paginatedTransactions.length === 0 ? (
                 <tr>
                   <td colSpan={4} className="px-3 py-8 text-center text-gray-500">
-                    Tidak ada transaksi
+                    Tidak ada transaksi pada periode ini
                   </td>
                 </tr>
               ) : (
@@ -529,7 +626,7 @@ const Reports = () => {
                 {paginatedTransactions.length === 0 ? (
                   <tr>
                     <td colSpan={6} className="px-6 py-12 text-center text-gray-500">
-                      Tidak ada transaksi
+                      Tidak ada transaksi pada periode ini
                     </td>
                   </tr>
                 ) : (
