@@ -13,7 +13,7 @@ const Reports = () => {
     startDate: '',
     endDate: ''
   });
-  // Kita ignore salesData dari backend, kita hitung sendiri dari transactions
+  
   const [summary, setSummary] = useState({
     totalRevenue: 0,
     totalOrders: 0,
@@ -24,13 +24,15 @@ const Reports = () => {
   const [currentPage, setCurrentPage] = useState(1);
   const itemsPerPage = 10;
 
-  // State untuk Export
+  // --- STATE UNTUK EXPORT ---
   const [showExportModal, setShowExportModal] = useState(false);
   const [exportConfig, setExportConfig] = useState({
     format: 'excel',
-    period: 'monthly',
-    startDate: '',
-    endDate: ''
+    periodType: 'monthly', // 'daily', 'monthly', 'custom'
+    selectedMonth: new Date().getMonth() + 1,
+    selectedYear: new Date().getFullYear(),
+    customStartDate: '',
+    customEndDate: ''
   });
   const [isExporting, setIsExporting] = useState(false);
 
@@ -55,86 +57,68 @@ const Reports = () => {
     }
   };
 
-  // --- LOGIC BARU: GENERATE GRAFIK DARI TRANSAKSI ---
+  // --- LOGIC GRAFIK ---
   const processedSalesData = useMemo(() => {
     if (!transactions || transactions.length === 0) return [];
 
-    // 1. Tentukan Mode Grouping (Bulanan atau Harian)
-    // Jika period 'monthly' dan tidak ada custom date -> Group by Month
     const isMonthlyView = period === 'monthly' && !dateRange.startDate;
-
-    // 2. Grouping Data Transaksi
     const grouped = {};
     
     transactions.forEach(tx => {
-        // Skip jika created_at tidak valid
-        if(!tx.created_at) return;
+      if(!tx.created_at) return;
+      const date = new Date(tx.created_at);
+      let key;
+      
+      if (isMonthlyView) {
+        const month = String(date.getMonth() + 1).padStart(2, '0');
+        key = `${date.getFullYear()}-${month}`;
+      } else {
+        const month = String(date.getMonth() + 1).padStart(2, '0');
+        const day = String(date.getDate()).padStart(2, '0');
+        key = `${date.getFullYear()}-${month}-${day}`;
+      }
 
-        const date = new Date(tx.created_at);
-        let key;
-        
-        if (isMonthlyView) {
-            // Format: YYYY-MM
-            const month = String(date.getMonth() + 1).padStart(2, '0');
-            key = `${date.getFullYear()}-${month}`;
-        } else {
-            // Format: YYYY-MM-DD
-            const month = String(date.getMonth() + 1).padStart(2, '0');
-            const day = String(date.getDate()).padStart(2, '0');
-            key = `${date.getFullYear()}-${month}-${day}`;
-        }
-
-        if (!grouped[key]) grouped[key] = { date: key, total: 0, count: 0 };
-        grouped[key].total += parseFloat(tx.total_price || 0);
-        grouped[key].count += 1;
+      if (!grouped[key]) grouped[key] = { date: key, total: 0, count: 0 };
+      grouped[key].total += parseFloat(tx.total_price || 0);
+      grouped[key].count += 1;
     });
 
-    // 3. Sorting Key untuk menentukan Range
     const sortedKeys = Object.keys(grouped).sort();
     if (sortedKeys.length === 0) return [];
 
-    // 4. Data Filling (Isi kekosongan tanggal)
     const filledData = [];
-    
-    // Tentukan Start & End Date untuk loop
-    // Jika user pilih Custom Range, gunakan itu. Jika tidak, gunakan min/max dari data transaksi.
     let startStr = dateRange.startDate || sortedKeys[0];
     let endStr = dateRange.endDate || sortedKeys[sortedKeys.length - 1];
     
-    // Validasi format string YYYY-MM (jika monthly view dari data tapi filter kosong)
     if (isMonthlyView && startStr.length > 7) startStr = startStr.substring(0, 7);
     if (isMonthlyView && endStr.length > 7) endStr = endStr.substring(0, 7);
 
     let current = new Date(startStr + (isMonthlyView ? '-01' : ''));
     const end = new Date(endStr + (isMonthlyView ? '-01' : ''));
 
-    // Loop
     while (current <= end) {
-        const year = current.getFullYear();
-        const month = String(current.getMonth() + 1).padStart(2, '0');
-        let key;
+      const year = current.getFullYear();
+      const month = String(current.getMonth() + 1).padStart(2, '0');
+      let key;
 
-        if (isMonthlyView) {
-            key = `${year}-${month}`;
-            // Increment Month
-            current.setMonth(current.getMonth() + 1);
-        } else {
-            const day = String(current.getDate()).padStart(2, '0');
-            key = `${year}-${month}-${day}`;
-            // Increment Day
-            current.setDate(current.getDate() + 1);
-        }
+      if (isMonthlyView) {
+        key = `${year}-${month}`;
+        current.setMonth(current.getMonth() + 1);
+      } else {
+        const day = String(current.getDate()).padStart(2, '0');
+        key = `${year}-${month}-${day}`;
+        current.setDate(current.getDate() + 1);
+      }
 
-        if (grouped[key]) {
-            filledData.push(grouped[key]);
-        } else {
-            filledData.push({ date: key, total: 0, count: 0 });
-        }
+      if (grouped[key]) {
+        filledData.push(grouped[key]);
+      } else {
+        filledData.push({ date: key, total: 0, count: 0 });
+      }
     }
 
     return filledData;
   }, [transactions, period, dateRange]);
-
 
   const handleDateChange = (e) => {
     setDateRange({ ...dateRange, [e.target.name]: e.target.value });
@@ -143,42 +127,57 @@ const Reports = () => {
 
   const clearDateRange = () => {
     setDateRange({ startDate: '', endDate: '' });
-    setPeriod('monthly'); // Reset ke default
+    setPeriod('monthly');
   };
 
+  // --- LOGIC EXPORT BARU ---
   const handleExport = async () => {
     try {
       setIsExporting(true);
-      const response = await reportService.export(exportConfig);
-      
-      if (response.data.type === 'application/json') {
-          const text = await response.data.text();
-          const json = JSON.parse(text);
-          throw new Error(json.message || 'Gagal export');
+
+      const params = {
+          format: exportConfig.format,
+          period: 'custom', 
+          startDate: '',
+          endDate: ''
+      };
+
+      if (exportConfig.periodType === 'daily') {
+          const today = new Date().toISOString().split('T')[0];
+          params.startDate = today;
+          params.endDate = today;
+      } else if (exportConfig.periodType === 'monthly') {
+          const start = new Date(exportConfig.selectedYear, exportConfig.selectedMonth - 1, 1);
+          const end = new Date(exportConfig.selectedYear, exportConfig.selectedMonth, 0);
+          
+          const offset = start.getTimezoneOffset() * 60000;
+          params.startDate = new Date(start.getTime() - offset).toISOString().split('T')[0];
+          params.endDate = new Date(end.getTime() - offset).toISOString().split('T')[0];
+      } else {
+          params.startDate = exportConfig.customStartDate;
+          params.endDate = exportConfig.customEndDate;
       }
 
+      const response = await reportService.export(params);
+      
       const url = window.URL.createObjectURL(new Blob([response.data]));
       const link = document.createElement('a');
       link.href = url;
       
       const ext = exportConfig.format === 'excel' ? 'xlsx' : 'pdf';
-      link.setAttribute('download', `Laporan_Penjualan_${exportConfig.period}.${ext}`);
+      const filename = `Laporan_Penjualan_${params.startDate}_to_${params.endDate}.${ext}`;
       
+      link.setAttribute('download', filename);
       document.body.appendChild(link);
       link.click();
       
       link.parentNode.removeChild(link);
       window.URL.revokeObjectURL(url);
+      
       setShowExportModal(false);
     } catch (error) {
       console.error('Export error:', error);
-      if (error.response && error.response.status === 404) {
-         alert("Data transaksi tidak ditemukan untuk periode yang dipilih. Laporan tidak dapat diexport.");
-      } else if (error.message) {
-         alert(error.message);
-      } else {
-         alert('Gagal mengunduh laporan. Pastikan ada data untuk periode tersebut.');
-      }
+      alert('Gagal mengunduh laporan. ' + (error.message || ''));
     } finally {
       setIsExporting(false);
     }
@@ -215,32 +214,60 @@ const Reports = () => {
                   onClick={() => setExportConfig({ ...exportConfig, format: 'pdf' })}
                   className={`p-3 rounded-lg border text-center transition-colors ${exportConfig.format === 'pdf' ? 'bg-red-50 border-red-500 text-red-700 font-medium' : 'border-gray-200 hover:bg-gray-50'}`}
                 >
-                  PDF
+                  PDF (Resmi)
                 </button>
               </div>
             </div>
 
             <div>
-              <label className="block text-sm font-medium mb-2">Periode</label>
+              <label className="block text-sm font-medium mb-2">Periode Laporan</label>
               <select
-                value={exportConfig.period}
-                onChange={(e) => setExportConfig({ ...exportConfig, period: e.target.value })}
+                value={exportConfig.periodType}
+                onChange={(e) => setExportConfig({ ...exportConfig, periodType: e.target.value })}
                 className="w-full p-2.5 border border-gray-300 rounded-lg outline-none focus:ring-2 focus:ring-primary-500"
               >
                 <option value="daily">Harian (Hari Ini)</option>
-                <option value="monthly">Bulanan (Bulan Ini)</option>
+                <option value="monthly">Bulanan</option>
                 <option value="custom">Custom Tanggal</option>
               </select>
             </div>
 
-            {exportConfig.period === 'custom' && (
+            {exportConfig.periodType === 'monthly' && (
+                <div className="grid grid-cols-2 gap-3">
+                    <div>
+                        <label className="text-xs text-gray-500 mb-1 block">Bulan</label>
+                        <select 
+                            value={exportConfig.selectedMonth}
+                            onChange={(e) => setExportConfig({...exportConfig, selectedMonth: parseInt(e.target.value)})}
+                            className="w-full p-2 border border-gray-300 rounded-lg"
+                        >
+                            {[...Array(12)].map((_, i) => (
+                                <option key={i} value={i + 1}>
+                                    {new Date(0, i).toLocaleString('id-ID', { month: 'long' })}
+                                </option>
+                            ))}
+                        </select>
+                    </div>
+                    <div>
+                        <label className="text-xs text-gray-500 mb-1 block">Tahun</label>
+                        <input 
+                            type="number" 
+                            value={exportConfig.selectedYear}
+                            onChange={(e) => setExportConfig({...exportConfig, selectedYear: parseInt(e.target.value)})}
+                            className="w-full p-2 border border-gray-300 rounded-lg"
+                        />
+                    </div>
+                </div>
+            )}
+
+            {exportConfig.periodType === 'custom' && (
               <div className="grid grid-cols-2 gap-3">
                 <div>
                   <label className="text-xs text-gray-500 mb-1 block">Dari</label>
                   <input
                     type="date"
-                    value={exportConfig.startDate}
-                    onChange={(e) => setExportConfig({ ...exportConfig, startDate: e.target.value })}
+                    value={exportConfig.customStartDate}
+                    onChange={(e) => setExportConfig({ ...exportConfig, customStartDate: e.target.value })}
                     className="w-full p-2 border border-gray-300 rounded-lg"
                   />
                 </div>
@@ -248,20 +275,24 @@ const Reports = () => {
                   <label className="text-xs text-gray-500 mb-1 block">Sampai</label>
                   <input
                     type="date"
-                    value={exportConfig.endDate}
-                    onChange={(e) => setExportConfig({ ...exportConfig, endDate: e.target.value })}
+                    value={exportConfig.customEndDate}
+                    onChange={(e) => setExportConfig({ ...exportConfig, customEndDate: e.target.value })}
                     className="w-full p-2 border border-gray-300 rounded-lg"
                   />
                 </div>
               </div>
             )}
 
+            <div className="bg-blue-50 p-3 rounded-lg text-xs text-blue-800">
+                <strong>Info:</strong> Nomor Laporan resmi (Audit Trail) akan digenerate otomatis dan tercantum di dalam file hasil download.
+            </div>
+
             <button
               onClick={handleExport}
               disabled={isExporting}
-              className="w-full bg-primary-600 text-white py-3 rounded-xl font-medium mt-4 hover:bg-primary-700 disabled:bg-gray-400 disabled:cursor-not-allowed transition-colors"
+              className="w-full bg-primary-600 text-white py-3 rounded-xl font-medium mt-4 hover:bg-primary-700 disabled:bg-gray-400 disabled:cursor-not-allowed transition-colors flex justify-center items-center gap-2"
             >
-              {isExporting ? 'Mengunduh...' : 'Download Laporan'}
+              {isExporting ? 'Downloading...' : <><FiDownload className="w-4 h-4" /> Download Laporan</>}
             </button>
           </div>
         </div>
@@ -283,7 +314,7 @@ const Reports = () => {
           <div className="p-4 border-b">
             <div className="w-12 h-1.5 bg-gray-300 rounded-full mx-auto mb-4" />
             <div className="flex items-center justify-between">
-              <h3 className="font-semibold text-lg">Filter Tanggal</h3>
+              <h3 className="font-semibold text-lg">Filter Dashboard</h3>
               <button onClick={() => setShowDateSheet(false)} className="p-2 hover:bg-gray-100 rounded-lg">
                 <FiX className="w-5 h-5" />
               </button>
@@ -379,15 +410,15 @@ const Reports = () => {
     </div>
   );
 
-  if (loading) {
+  if (loading && transactions.length === 0) {
     return <Loader fullScreen />;
   }
 
   return (
-    <div className="space-y-4 md:space-y-6 pb-24 lg:pb-0">
+    <div className="space-y-4 md:space-y-6 pb-24 lg:pb-0 p-4 md:p-6">
       {/* Header with Export Button */}
       <div className="flex flex-col md:flex-row md:items-center justify-between gap-4">
-        <h1 className="text-xl md:text-2xl font-bold text-gray-900">Laporan Penjualan</h1>
+        <h1 className="text-xl md:text-2xl font-bold text-gray-900">Dashboard & Laporan</h1>
         <button
           onClick={() => setShowExportModal(true)}
           className="flex items-center justify-center gap-2 bg-green-600 text-white px-4 py-2 rounded-lg hover:bg-green-700 transition-colors shadow-sm"
@@ -397,12 +428,15 @@ const Reports = () => {
         </button>
       </div>
 
-      {/* Filters */}
+      {/* Filters Dashboard (View Only) */}
       <div className="bg-white rounded-xl shadow-sm p-4 space-y-4">
-        <div className="flex gap-2">
+        <div className="flex justify-between items-center">
+             <div className="text-sm font-semibold text-gray-500">Filter Tampilan Dashboard</div>
+        </div>
+        <div className="flex gap-2 flex-wrap">
           <button
             onClick={() => { setPeriod('daily'); setDateRange({startDate: '', endDate: ''}); }}
-            className={`flex-1 md:flex-none px-4 py-2 rounded-lg font-medium transition-colors ${
+            className={`px-4 py-2 rounded-lg font-medium transition-colors text-sm ${
               period === 'daily' ? 'bg-primary-600 text-white' : 'bg-gray-100 text-gray-700'
             }`}
           >
@@ -410,7 +444,7 @@ const Reports = () => {
           </button>
           <button
             onClick={() => { setPeriod('monthly'); setDateRange({startDate: '', endDate: ''}); }}
-            className={`flex-1 md:flex-none px-4 py-2 rounded-lg font-medium transition-colors ${
+            className={`px-4 py-2 rounded-lg font-medium transition-colors text-sm ${
               period === 'monthly' ? 'bg-primary-600 text-white' : 'bg-gray-100 text-gray-700'
             }`}
           >
@@ -430,7 +464,7 @@ const Reports = () => {
           <span className="font-medium">
             {dateRange.startDate || dateRange.endDate
               ? `${dateRange.startDate || '...'} - ${dateRange.endDate || '...'}`
-              : 'Filter Tanggal'}
+              : 'Custom Tanggal'}
           </span>
         </button>
         
@@ -441,7 +475,7 @@ const Reports = () => {
             name="startDate"
             value={dateRange.startDate}
             onChange={handleDateChange}
-            className="px-3 py-2 border border-gray-300 rounded-lg"
+            className="px-3 py-2 border border-gray-300 rounded-lg text-sm"
           />
           <span className="text-gray-400">-</span>
           <input
@@ -449,12 +483,12 @@ const Reports = () => {
             name="endDate"
             value={dateRange.endDate}
             onChange={handleDateChange}
-            className="px-3 py-2 border border-gray-300 rounded-lg"
+            className="px-3 py-2 border border-gray-300 rounded-lg text-sm"
           />
           {(dateRange.startDate || dateRange.endDate) && (
             <button
               onClick={clearDateRange}
-              className="px-3 py-2 text-red-600 hover:bg-red-50 rounded-lg flex items-center gap-1"
+              className="px-3 py-2 text-red-600 hover:bg-red-50 rounded-lg flex items-center gap-1 text-sm"
             >
               <FiX className="w-4 h-4" /> Reset
             </button>
@@ -501,7 +535,7 @@ const Reports = () => {
         </div>
       </ResponsiveGrid>
 
-      {/* Charts - MENGGUNAKAN processedSalesData */}
+      {/* Charts */}
       <div className="grid grid-cols-1 gap-4 md:gap-6">
         <div className="bg-white rounded-xl shadow-sm p-4">
           <h2 className="text-base md:text-lg font-semibold mb-4">Grafik Penjualan</h2>
@@ -550,12 +584,13 @@ const Reports = () => {
         </div>
       </div>
 
-      {/* Transactions */}
+      {/* Transactions Table */}
       <div className="bg-white rounded-xl shadow-sm overflow-hidden">
         <div className="p-4 border-b">
           <h2 className="text-base md:text-lg font-semibold">Riwayat Transaksi</h2>
         </div>
 
+        {/* Mobile View */}
         <div className="md:hidden p-4 space-y-3">
           {paginatedTransactions.length === 0 ? (
             <p className="text-center py-8 text-gray-500">Tidak ada transaksi pada periode ini</p>
@@ -565,6 +600,7 @@ const Reports = () => {
           <Pagination />
         </div>
 
+        {/* Tablet View (DIPERBAIKI) */}
         <div className="hidden md:block lg:hidden overflow-x-auto">
           <table className="w-full text-sm">
             <thead className="bg-gray-50">
@@ -609,6 +645,7 @@ const Reports = () => {
           )}
         </div>
 
+        {/* Desktop View */}
         <div className="hidden lg:block">
           <ResponsiveTableWrapper>
             <table className="w-full">
