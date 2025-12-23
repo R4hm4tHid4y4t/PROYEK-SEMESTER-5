@@ -19,10 +19,9 @@ const protect = async (req, res, next) => {
       return res.status(401).json({ message: 'User tidak ditemukan.' });
     }
 
-    req.user = user;
+req.user = user;
     next();
-    // eslint-disable-next-line no-unused-vars
-  } catch (error) {
+  } catch { // <--- Hapus '(_)' sepenuhnya
     return res.status(401).json({ message: 'Token tidak valid.' });
   }
 };

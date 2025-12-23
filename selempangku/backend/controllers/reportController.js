@@ -179,7 +179,9 @@ exports.exportReport = async (req, res) => {
                 const rawRole = currentUser.role || 'Admin';
                 signerRole = rawRole.charAt(0).toUpperCase() + rawRole.slice(1);
             }
-        } catch (err) { }
+        } catch (error) {
+            console.warn('Gagal ambil signer:', error);
+        }
     }
 
     // --- 5A. EXPORT EXCEL (VISUALLY CENTERED) ---
